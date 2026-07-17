@@ -3,7 +3,7 @@
 // ============================================================================
 // Quando o catálogo roda no MESMO computador que o backend (localhost),
 // usamos o caminho relativo "/api" — funciona direto, sem configurar nada.
-//
+//const API_URL_PRODUCAO = 'https://essencial-barber-backend-production.up.railway.app/api';
 // Quando o catálogo estiver publicado no seu domínio (ex:
 // essencialbarber.com.br) e o backend estiver hospedado em outro endereço
 // (ex: Railway), o catálogo precisa saber a URL completa da API. Troque a
