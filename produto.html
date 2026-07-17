@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Produto | Essencial Barber</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+    <div class="header-container">
+        <div class="top-bar">
+            <a href="index.html" class="store-name">Essencial <span>Barber</span></a>
+            <form class="search-bar" id="form-busca-header">
+                <input type="text" id="input-busca-header" placeholder="Buscar pomada, óleo, navalha...">
+                <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+            <div class="nav-actions">
+                <button class="btn btn-secondary" onclick="openCartModal()"><i class="fa-solid fa-cart-shopping"></i> Carrinho (<span id="cart-badge">0</span>)</button>
+                <button class="btn" onclick="openLoginModal()" id="login-nav-btn">Minha Conta</button>
+            </div>
+        </div>
+    </div>
+    <nav class="category-nav">
+        <div class="category-nav-inner" id="category-nav-list"></div>
+    </nav>
+</header>
+
+<main class="container">
+    <div class="breadcrumb" id="breadcrumb"><a href="index.html">Home</a></div>
+
+    <div id="produto-conteudo">
+        <div class="empty-msg">Carregando produto...</div>
+    </div>
+
+    <div class="section-title" id="titulo-relacionados" style="display:none;"><h2>Produtos Relacionados</h2></div>
+    <section class="product-grid" id="grid-relacionados"></section>
+
+    <div class="section-title" id="titulo-semelhantes" style="display:none;"><h2>Produtos Semelhantes</h2></div>
+    <section class="product-grid" id="grid-semelhantes"></section>
+</main>
+
+<footer>
+    <div class="footer-inner">
+        <div class="footer-col">
+            <h5>Institucional</h5>
+            <a href="sobre.html">Quem Somos</a>
+            <a href="trabalhe-conosco.html">Trabalhe Conosco</a>
+            <a href="nossas-lojas.html">Nossas Lojas</a>
+            <a href="faq.html">Perguntas Frequentes</a>
+        </div>
+        <div class="footer-col">
+            <h5>Atendimento</h5>
+            <a href="contato.html">Contatos</a>
+            <a href="politica-privacidade.html">Política de Privacidade</a>
+            <a href="trocas-devolucoes.html">Trocas e Devoluções</a>
+            <a href="termos.html">Termos de Uso</a>
+        </div>
+        <div class="footer-col">
+            <h5>Fale Conosco</h5>
+            <a href="https://wa.me/5591999999999" target="_blank">WhatsApp: (91) 99999-9999</a>
+            <a href="mailto:contato@essencialbarber.com.br">contato@essencialbarber.com.br</a>
+        </div>
+    </div>
+    <div class="footer-bottom">Essencial Barber · CNPJ [PREENCHER] · [Endereço a preencher] · © 2026 Todos os direitos reservados.</div>
+</footer>
+
+<div id="cart-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeCartModal()">&times;</span>
+        <h3>Seu Carrinho</h3>
+        <div id="cart-items" style="margin:20px 0; max-height:300px; overflow-y:auto;"></div>
+        <div style="font-size:18px; font-weight:bold; margin-bottom:20px;">Total: <span id="cart-total">R$ 0,00</span></div>
+        <button class="btn" style="width:100%;" onclick="checkout()">Finalizar Pedido</button>
+    </div>
+</div>
+
+<div id="login-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeLoginModal()">&times;</span>
+        <h3>Login via WhatsApp</h3>
+        <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Informe seu nome e WhatsApp para rastrear seus pedidos.</p>
+        <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>Seu Nome *</label>
+                <input type="text" id="login-name" class="form-control" required placeholder="Ex: João Silva">
+            </div>
+            <div class="form-group">
+                <label>Seu WhatsApp *</label>
+                <input type="text" id="login-whatsapp" class="form-control" required placeholder="Ex: 81999999999">
+            </div>
+            <button type="submit" class="btn" style="width:100%;">Continuar</button>
+        </form>
+    </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/loja-produto.js"></script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidade | Essencial Barber</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+    <div class="header-container">
+        <div class="top-bar">
+            <a href="index.html" class="store-name">Essencial <span>Barber</span></a>
+            <form class="search-bar" id="form-busca-header">
+                <input type="text" id="input-busca-header" placeholder="Buscar pomada, óleo, navalha...">
+                <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+            <div class="nav-actions">
+                <button class="btn btn-secondary" onclick="openCartModal()"><i class="fa-solid fa-cart-shopping"></i> Carrinho (<span id="cart-badge">0</span>)</button>
+                <button class="btn" onclick="openLoginModal()" id="login-nav-btn">Minha Conta</button>
+            </div>
+        </div>
+    </div>
+    <nav class="category-nav">
+        <div class="category-nav-inner" id="category-nav-list"></div>
+    </nav>
+</header>
+
+<main class="container" style="max-width:820px;">
+    <div class="breadcrumb"><a href="index.html">Home</a> &raquo; Política de Privacidade</div>
+    <h1 style="font-size:26px; margin-bottom:20px;">Política de Privacidade</h1>
+    <div style="font-size:14px; line-height:1.8; color:#464e5f;">
+<p>Esta política explica como a Essencial Barber coleta, usa e protege as informações fornecidas por você ao usar nosso catálogo online.</p>
+        <h3 style="font-size:15px; margin-top:20px; margin-bottom:8px;">Quais dados coletamos</h3>
+        <p>Coletamos nome e número de WhatsApp para identificar seus pedidos, além de informações de endereço quando necessárias para entrega.</p>
+        <h3 style="font-size:15px; margin-top:20px; margin-bottom:8px;">Como usamos seus dados</h3>
+        <p>Seus dados são usados exclusivamente para processar pedidos, entrar em contato sobre o andamento da compra e melhorar nosso atendimento. Não vendemos ou compartilhamos seus dados com terceiros para fins de marketing.</p>
+        <h3 style="font-size:15px; margin-top:20px; margin-bottom:8px;">Seus direitos</h3>
+        <p>Você pode solicitar a qualquer momento a exclusão dos seus dados armazenados, entrando em contato pelos canais informados na página de Contatos.</p>
+        <p style="color:var(--text-muted); font-size:12px; margin-top:20px;">[PREENCHER: revisar este texto com um responsável jurídico antes de publicar, para garantir conformidade com a LGPD.]</p>
+    </div>
+</main>
+
+<footer>
+    <div class="footer-inner">
+        <div class="footer-col">
+            <h5>Institucional</h5>
+            <a href="sobre.html">Quem Somos</a>
+            <a href="trabalhe-conosco.html">Trabalhe Conosco</a>
+            <a href="nossas-lojas.html">Nossas Lojas</a>
+            <a href="faq.html">Perguntas Frequentes</a>
+        </div>
+        <div class="footer-col">
+            <h5>Atendimento</h5>
+            <a href="contato.html">Contatos</a>
+            <a href="politica-privacidade.html">Política de Privacidade</a>
+            <a href="trocas-devolucoes.html">Trocas e Devoluções</a>
+            <a href="termos.html">Termos de Uso</a>
+        </div>
+        <div class="footer-col">
+            <h5>Fale Conosco</h5>
+            <a href="https://wa.me/5591999999999" target="_blank">WhatsApp: (91) 99999-9999</a>
+            <a href="mailto:contato@essencialbarber.com.br">contato@essencialbarber.com.br</a>
+        </div>
+    </div>
+    <div class="footer-bottom">Essencial Barber · CNPJ [PREENCHER] · [Endereço a preencher] · © 2026 Todos os direitos reservados.</div>
+</footer>
+
+<div id="cart-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeCartModal()">&times;</span>
+        <h3>Seu Carrinho</h3>
+        <div id="cart-items" style="margin:20px 0; max-height:300px; overflow-y:auto;"></div>
+        <div style="font-size:18px; font-weight:bold; margin-bottom:20px;">Total: <span id="cart-total">R$ 0,00</span></div>
+        <button class="btn" style="width:100%;" onclick="checkout()">Finalizar Pedido</button>
+    </div>
+</div>
+
+<div id="login-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeLoginModal()">&times;</span>
+        <h3>Login via WhatsApp</h3>
+        <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Informe seu nome e WhatsApp para rastrear seus pedidos.</p>
+        <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>Seu Nome *</label>
+                <input type="text" id="login-name" class="form-control" required placeholder="Ex: João Silva">
+            </div>
+            <div class="form-group">
+                <label>Seu WhatsApp *</label>
+                <input type="text" id="login-whatsapp" class="form-control" required placeholder="Ex: 81999999999">
+            </div>
+            <button type="submit" class="btn" style="width:100%;">Continuar</button>
+        </form>
+    </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
