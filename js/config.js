@@ -10,7 +10,7 @@
 // linha abaixo pela URL real do seu backend depois de fazer o deploy dele
 // (Fase 8.0.3) — é a ÚNICA linha que precisa editar neste arquivo.
 // ---------------------------------------------------------------------------
-const API_URL_PRODUCAO = 'https://github.com/essencialbarberoficial/essencial-barber-backend.git/api';
+const API_URL_PRODUCAO = 'essencial-barber-backend-production.up.railway.app/api';
 
 const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? '/api'
