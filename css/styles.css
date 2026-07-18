@@ -120,6 +120,11 @@ header { background: #fff; border-bottom: 1px solid var(--border-color); positio
 .frete-opcao { display: flex; justify-content: space-between; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
 .frete-opcao:last-child { border-bottom: none; }
 
+/* ---------- CHECKOUT / PAGAMENTO (Fase 8) ---------- */
+.card-panel { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; }
+.opcao-variacao { display: inline-block; padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; font-size: 13px; }
+.opcao-variacao.selecionada { border-color: var(--primary); background: #fdf1ee; color: var(--primary); font-weight: 600; }
+
 .produto-tabs { margin-top: 40px; }
 .produto-tabs .tab-buttons { display: flex; gap: 6px; border-bottom: 1px solid var(--border-color); margin-bottom: 18px; }
 .produto-tabs .tab-buttons button { background: none; border: none; padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; }

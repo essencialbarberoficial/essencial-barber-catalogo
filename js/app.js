@@ -277,25 +277,22 @@ async function checkout() {
   }));
 
   try {
-    await fetch(`${API_BASE}/pedidos`, {
+    const pedido = await fetch(`${API_BASE}/pedidos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         clienteId: CURRENT_USER.id, status: 'recebido', total, observacoes, itens,
         origem: 'catalogo-online', criadoEm: new Date().toISOString()
       })
-    });
+    }).then((r) => r.json());
+
+    // O carrinho já cumpriu seu papel (virou pedido) — limpa antes de sair da página
+    CART = [];
+    saveCart();
+
+    window.location.href = `checkout.html?pedido=${pedido.id}`;
   } catch (err) {
     console.error('Erro ao registrar pedido', err);
+    alert('Não foi possível iniciar o pagamento. Tente novamente.');
   }
-
-  const mensagem = encodeURIComponent(
-    `Olá! Meu nome é ${CURRENT_USER.nome}.\nGostaria de finalizar o seguinte pedido:\n\n${observacoes}\n\nTotal: ${formatCurrency(total)}`
-  );
-  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${mensagem}`, '_blank');
-
-  CART = [];
-  saveCart();
-  renderCart();
-  closeCartModal();
 }

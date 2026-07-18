@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento | Essencial Barber</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+</head>
+<body>
+
+<header>
+    <div class="header-container">
+        <div class="top-bar">
+            <a href="index.html" class="store-name">Essencial <span>Barber</span></a>
+            <div class="nav-actions">
+                <span style="font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-lock"></i> Ambiente seguro de pagamento</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="container" style="max-width:720px;">
+    <div id="checkout-conteudo">
+        <div class="empty-msg">Carregando seu pedido...</div>
+    </div>
+</main>
+
+<footer>
+    <div class="footer-bottom">Essencial Barber · Pagamento processado com segurança pelo Mercado Pago.</div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/checkout.js"></script>
+</body>
+</html>

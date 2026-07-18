@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhar Pedido | Essencial Barber</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .timeline { display: flex; justify-content: space-between; margin: 40px 0; position: relative; }
+        .timeline::before { content: ''; position: absolute; top: 18px; left: 0; right: 0; height: 3px; background: var(--border-color); z-index: 0; }
+        .timeline-etapa { position: relative; z-index: 1; text-align: center; flex: 1; }
+        .timeline-etapa .bola { width: 36px; height: 36px; border-radius: 50%; background: var(--border-color); color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 14px; }
+        .timeline-etapa.ativa .bola, .timeline-etapa.concluida .bola { background: var(--primary); }
+        .timeline-etapa span { font-size: 12px; color: var(--text-muted); }
+        .timeline-etapa.ativa span, .timeline-etapa.concluida span { color: var(--charcoal); font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-container">
+        <div class="top-bar">
+            <a href="index.html" class="store-name">Essencial <span>Barber</span></a>
+        </div>
+    </div>
+</header>
+
+<main class="container" style="max-width:600px;">
+    <div id="pedido-conteudo">
+        <div class="empty-msg">Carregando...</div>
+    </div>
+</main>
+
+<footer>
+    <div class="footer-bottom">Essencial Barber</div>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/pedido.js"></script>
+</body>
+</html>
