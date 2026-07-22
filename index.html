@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essencial Barber | Catálogo Online</title>
+    <meta name="description" content="Acesse o catálogo completo da Essencial Barber. Produtos de barbearia com os melhores preços, compra direto pelo WhatsApp.">
+    <meta property="og:title" content="Essencial Barber | Catálogo Oficial">
+    <meta property="og:description" content="Compre direto pelo WhatsApp. Praticidade, rapidez e segurança via PIX.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+    <div class="header-container">
+        <div class="top-bar">
+            <a href="index.html" class="store-name">Essencial <span>Barber</span></a>
+            <form class="search-bar" id="form-busca-header">
+                <input type="text" id="input-busca-header" placeholder="Buscar pomada, óleo, navalha...">
+                <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+            <div class="nav-actions">
+                <button class="btn btn-secondary" onclick="openCartModal()"><i class="fa-solid fa-cart-shopping"></i> Carrinho (<span id="cart-badge">0</span>)</button>
+                <button class="btn" onclick="openLoginModal()" id="login-nav-btn">Minha Conta</button>
+            </div>
+        </div>
+        <div id="logo-catalogo-container" style="display:none; text-align:center; padding:10px 0 4px;">
+            <img id="logo-catalogo-img" src="" alt="Logo" style="max-height:64px; max-width:220px;">
+        </div>
+    </div>
+    <nav class="category-nav">
+        <div class="category-nav-inner" id="category-nav-list"></div>
+    </nav>
+</header>
+
+<main class="container">
+
+    <!-- BANNER PRINCIPAL -->
+    <section class="hero-banner" id="hero-banner">
+        <div class="hero-slide active">
+            <div class="eyebrow">Essencial Barber</div>
+            <h1>Cuidado de verdade começa nos detalhes</h1>
+            <p>Pomadas, óleos e acessórios selecionados para elevar sua barbearia — do balcão pra sua casa, direto no WhatsApp.</p>
+            <a href="categoria.html" class="btn">Ver Catálogo Completo</a>
+        </div>
+        <div class="hero-slide">
+            <div class="eyebrow">Novidades</div>
+            <h1>Confira os últimos lançamentos</h1>
+            <p>Produtos novos chegando toda semana, escolhidos com o mesmo padrão que você já confia no salão.</p>
+            <a href="categoria.html?ordenar=lancamentos" class="btn">Ver Lançamentos</a>
+        </div>
+        <div class="hero-dots" id="hero-dots"></div>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <div id="bloco-secao-categorias" data-secao-home="categorias">
+        <div class="section-title"><h2>Categorias</h2></div>
+        <section class="category-grid" id="categorias-grid">
+            <div class="empty-msg">Carregando categorias...</div>
+        </section>
+    </div>
+
+    <!-- DESTAQUES -->
+    <div id="bloco-secao-destaque" data-secao-home="destaque">
+        <div class="section-title"><h2>Produtos em Destaque</h2><a href="categoria.html">Ver tudo</a></div>
+        <section class="product-grid" id="grid-destaques"><div class="empty-msg">Carregando...</div></section>
+    </div>
+
+    <!-- OFERTAS -->
+    <div id="bloco-secao-ofertas" data-secao-home="ofertas">
+        <div class="section-title"><h2>Ofertas</h2><a href="categoria.html?ordenar=menor-preco">Ver tudo</a></div>
+        <section class="product-grid" id="grid-ofertas"><div class="empty-msg">Carregando...</div></section>
+    </div>
+
+    <!-- LANÇAMENTOS -->
+    <div id="bloco-secao-lancamentos" data-secao-home="lancamentos">
+        <div class="section-title"><h2>Lançamentos</h2><a href="categoria.html?ordenar=lancamentos">Ver tudo</a></div>
+        <section class="product-grid" id="grid-lancamentos"><div class="empty-msg">Carregando...</div></section>
+    </div>
+
+    <!-- BENEFÍCIOS DA LOJA -->
+    <section class="beneficios-strip">
+        <div class="beneficio-item">
+            <div class="icon"><i class="fa-solid fa-lock"></i></div>
+            <div><strong>Compra Segura</strong><span>Seus dados protegidos em todas as etapas.</span></div>
+        </div>
+        <div class="beneficio-item">
+            <div class="icon"><i class="fa-solid fa-truck"></i></div>
+            <div><strong>Entrega Rápida</strong><span>Retirada no balcão ou motoboy expresso.</span></div>
+        </div>
+        <div class="beneficio-item">
+            <div class="icon"><i class="fa-brands fa-whatsapp"></i></div>
+            <div><strong>Atendimento</strong><span>Fale direto com a gente pelo WhatsApp.</span></div>
+        </div>
+        <div class="beneficio-item">
+            <div class="icon"><i class="fa-solid fa-qrcode"></i></div>
+            <div><strong>Pix e Cartão</strong><span>Pague do jeito que for mais fácil pra você.</span></div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="footer-inner">
+        <div class="footer-col">
+            <h5>Institucional</h5>
+            <a href="sobre.html">Quem Somos</a>
+            <a href="trabalhe-conosco.html">Trabalhe Conosco</a>
+            <a href="nossas-lojas.html">Nossas Lojas</a>
+            <a href="faq.html">Perguntas Frequentes</a>
+        </div>
+        <div class="footer-col">
+            <h5>Atendimento</h5>
+            <a href="contato.html">Contatos</a>
+            <a href="politica-privacidade.html">Política de Privacidade</a>
+            <a href="trocas-devolucoes.html">Trocas e Devoluções</a>
+            <a href="termos.html">Termos de Uso</a>
+        </div>
+        <div class="footer-col">
+            <h5>Fale Conosco</h5>
+            <a href="https://wa.me/5591999999999" target="_blank">WhatsApp: (91) 99999-9999</a>
+            <a href="mailto:contato@essencialbarber.com.br">contato@essencialbarber.com.br</a>
+            <span style="display:block; font-size:13px; color:#9aa1ad;">Seg a Sáb, 9h às 19h</span>
+        </div>
+        <div class="footer-col">
+            <h5>Formas de Pagamento</h5>
+            <span style="display:block; font-size:13px; color:#9aa1ad;">Pix e Cartão de Crédito</span>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        Essencial Barber · CNPJ [PREENCHER] · [Endereço a preencher] · © 2026 Todos os direitos reservados.
+    </div>
+</footer>
+
+<!-- MODAL DO CARRINHO -->
+<div id="cart-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeCartModal()">&times;</span>
+        <h3>Seu Carrinho</h3>
+        <div id="cart-items" style="margin:20px 0; max-height:300px; overflow-y:auto;"></div>
+
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <input type="text" id="cart-cupom-input" placeholder="Código do cupom" style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:6px; text-transform:uppercase;">
+            <button class="btn-secondary btn" onclick="aplicarCupomCarrinho()">Aplicar</button>
+        </div>
+        <div id="cart-cupom-mensagem" style="font-size:12px; margin-bottom:10px;"></div>
+
+        <div style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--text-muted);">
+                <span>Subtotal</span><span id="cart-subtotal">R$ 0,00</span>
+            </div>
+            <div id="cart-linha-desconto" style="display:none; justify-content:space-between; font-size:14px; color:var(--success-color, #16a34a);">
+                <span>Desconto</span><span id="cart-desconto">- R$ 0,00</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:bold; margin-top:6px; padding-top:6px; border-top:1px solid var(--border-color);">
+                <span>Total</span><span id="cart-total">R$ 0,00</span>
+            </div>
+        </div>
+
+        <button class="btn" style="width:100%;" onclick="checkout()">Finalizar Pedido</button>
+    </div>
+</div>
+
+<!-- MODAL DE LOGIN / CADASTRO -->
+<div id="login-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeLoginModal()">&times;</span>
+
+        <!-- ETAPA 1 - IDENTIFICAÇÃO -->
+        <div id="identificacao-etapa-1">
+            <h3>Identificação</h3>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Informe ao menos um dado abaixo. Se você já é cliente, a gente reconhece automaticamente.</p>
+            <form onsubmit="handleIdentificacao(event)">
+                <div class="form-group">
+                    <label>E-mail</label>
+                    <input type="email" id="ident-email" class="form-control" placeholder="seu@email.com">
+                </div>
+                <div class="form-group">
+                    <label>CPF/CNPJ</label>
+                    <input type="text" id="ident-documento" class="form-control" placeholder="000.000.000-00">
+                </div>
+                <div class="form-group">
+                    <label>Telefone/WhatsApp</label>
+                    <input type="text" id="ident-telefone" class="form-control" placeholder="(00) 00000-0000">
+                </div>
+                <p id="ident-erro" style="color:var(--danger-color); font-size:12px; margin-bottom:10px;"></p>
+                <button type="submit" class="btn" style="width:100%;">Continuar</button>
+            </form>
+        </div>
+
+        <!-- ETAPA 2 - DADOS DO CLIENTE (só aparece se for cliente novo) -->
+        <div id="identificacao-etapa-2" style="display:none;">
+            <h3>Dados Pessoais</h3>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Não encontramos seu cadastro — só mais alguns dados pra criar o seu.</p>
+            <form onsubmit="handleCadastro(event)">
+                <div class="form-group">
+                    <label>Nome *</label>
+                    <input type="text" id="cad-nome" class="form-control" required placeholder="Ex: João">
+                </div>
+                <div class="form-group">
+                    <label>Sobrenome</label>
+                    <input type="text" id="cad-sobrenome" class="form-control" placeholder="Ex: Silva">
+                </div>
+                <div class="form-group">
+                    <label>CPF</label>
+                    <input type="text" id="cad-documento" class="form-control" placeholder="000.000.000-00">
+                </div>
+                <div class="form-group">
+                    <label>Data de Nascimento</label>
+                    <input type="date" id="cad-nascimento" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Telefone/WhatsApp *</label>
+                    <input type="text" id="cad-telefone" class="form-control" required placeholder="(00) 00000-0000">
+                </div>
+                <div class="form-group">
+                    <label>E-mail</label>
+                    <input type="email" id="cad-email" class="form-control">
+                </div>
+                <p id="cad-erro" style="color:var(--danger-color); font-size:12px; margin-bottom:10px;"></p>
+                <button type="submit" class="btn" style="width:100%;">Continuar</button>
+                <button type="button" onclick="voltarParaIdentificacao()" style="width:100%; margin-top:8px; background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer;">&larr; Voltar</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/loja-home.js"></script>
+</body>
+</html>
