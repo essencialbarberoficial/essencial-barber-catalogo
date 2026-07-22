@@ -15,10 +15,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    const [produto, categorias, variacoes] = await Promise.all([
+    const [produto, categorias, variacoes, imagens] = await Promise.all([
       fetch(`${API_BASE}/produtos/${id}`).then((r) => { if (!r.ok) throw new Error('não encontrado'); return r.json(); }),
       fetch(`${API_BASE}/categorias`).then((r) => r.json()),
-      fetch(`${API_BASE}/produtos/${id}/variacoes`).then((r) => r.json())
+      fetch(`${API_BASE}/produtos/${id}/variacoes`).then((r) => r.json()),
+      fetch(`${API_BASE}/produtos/${id}/imagens`).then((r) => r.json()).catch(() => [])
     ]);
 
     PRODUTO_ATUAL = produto;
@@ -26,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     TODAS_CATEGORIAS_PRODUTO = categorias;
 
     montarBreadcrumbProduto(produto, categorias);
-    renderizarProduto(produto, variacoes);
+    renderizarProduto(produto, variacoes, imagens);
     carregarRelacionadosSemelhantes(produto, categorias);
   } catch (err) {
     console.error('Erro ao carregar produto', err);
@@ -48,17 +49,35 @@ function montarBreadcrumbProduto(produto, categorias) {
     ` &raquo; ${escapeHtml(produto.nome)}`;
 }
 
-function renderizarProduto(p, variacoes) {
+function renderizarProduto(p, variacoes, imagensRecebidas) {
   document.title = `${p.nome} | Essencial Barber`;
   document.getElementById('page-title').textContent = `${p.nome} | Essencial Barber`;
 
   const promo = p.precoPromocional && p.precoPromocional > 0;
   const especificacoes = parseCaracteristicas(p.caracteristicas);
 
+  // Se o produto ainda não tem imagens cadastradas na tabela nova (produto
+  // antigo, criado antes da Fase 21), cai pro campo único de sempre — pra
+  // nunca ficar sem nenhuma foto.
+  const imagens = (imagensRecebidas && imagensRecebidas.length)
+    ? imagensRecebidas.map((i) => i.imagemBase64)
+    : [p.imagem || 'https://via.placeholder.com/600x600?text=Produto'];
+
   document.getElementById('produto-conteudo').innerHTML = `
     <div class="produto-layout">
       <div class="produto-galeria">
-        <img src="${p.imagem || 'https://via.placeholder.com/600x600?text=Produto'}" alt="${escapeHtml(p.nome)}">
+        <div class="galeria-principal">
+          ${imagens.length > 1 ? '<button class="galeria-seta galeria-seta-esq" onclick="mudarImagemGaleria(-1)"><i class="fa-solid fa-chevron-left"></i></button>' : ''}
+          <div class="galeria-scroll" id="galeria-scroll">
+            ${imagens.map((src, i) => `<img src="${src}" alt="${escapeHtml(p.nome)} — foto ${i + 1}" class="galeria-imagem">`).join('')}
+          </div>
+          ${imagens.length > 1 ? '<button class="galeria-seta galeria-seta-dir" onclick="mudarImagemGaleria(1)"><i class="fa-solid fa-chevron-right"></i></button>' : ''}
+        </div>
+        ${imagens.length > 1 ? `
+          <div class="galeria-miniaturas" id="galeria-miniaturas">
+            ${imagens.map((src, i) => `<img src="${src}" class="miniatura${i === 0 ? ' ativa' : ''}" onclick="irParaImagemGaleria(${i})">`).join('')}
+          </div>
+        ` : ''}
       </div>
       <div class="produto-info">
         <h1>${escapeHtml(p.nome)}</h1>
@@ -229,3 +248,30 @@ async function carregarRelacionadosSemelhantes(produtoAtual, categorias) {
     console.error('Erro ao carregar relacionados/semelhantes', err);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Fase 21 Parte B — Navegação da galeria de imagens (setas no desktop,
+// miniaturas clicáveis, e sincronização automática enquanto o usuário
+// arrasta/swipa no celular — o scroll nativo do navegador já cuida do
+// gesto de arrastar, só precisamos manter a miniatura ativa em dia).
+// ---------------------------------------------------------------------------
+function mudarImagemGaleria(direcao) {
+  const scroll = document.getElementById('galeria-scroll');
+  if (!scroll) return;
+  scroll.scrollBy({ left: direcao * scroll.clientWidth, behavior: 'smooth' });
+}
+
+function irParaImagemGaleria(indice) {
+  const scroll = document.getElementById('galeria-scroll');
+  if (!scroll) return;
+  scroll.scrollTo({ left: indice * scroll.clientWidth, behavior: 'smooth' });
+}
+
+document.addEventListener('scroll', (e) => {
+  if (e.target.id !== 'galeria-scroll') return;
+  const scroll = e.target;
+  const indiceAtual = Math.round(scroll.scrollLeft / scroll.clientWidth);
+  document.querySelectorAll('#galeria-miniaturas .miniatura').forEach((min, i) => {
+    min.classList.toggle('ativa', i === indiceAtual);
+  });
+}, true); // captura, já que 'scroll' não borbulha por padrão

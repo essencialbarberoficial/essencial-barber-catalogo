@@ -102,7 +102,33 @@ header { background: #fff; border-bottom: 1px solid var(--border-color); positio
 
 /* ---------- FICHA DE PRODUTO ---------- */
 .produto-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-.produto-galeria img { width: 100%; border-radius: 10px; border: 1px solid var(--border-color); object-fit: cover; aspect-ratio: 1/1; }
+.produto-galeria { position: relative; }
+.galeria-principal { position: relative; }
+.galeria-scroll {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+  border-radius: 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.galeria-scroll::-webkit-scrollbar { display: none; }
+.galeria-imagem {
+  flex: 0 0 100%; width: 100%; aspect-ratio: 1/1; object-fit: cover;
+  scroll-snap-align: start; border: 1px solid var(--border-color);
+}
+.galeria-seta {
+  display: none; position: absolute; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,0.9);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15); cursor: pointer; align-items: center; justify-content: center; z-index: 5;
+}
+.galeria-seta-esq { left: 10px; }
+.galeria-seta-dir { right: 10px; }
+.galeria-miniaturas { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; }
+.galeria-miniaturas .miniatura {
+  width: 60px; height: 60px; object-fit: cover; border-radius: 6px; cursor: pointer;
+  border: 2px solid transparent; opacity: 0.6; flex-shrink: 0;
+}
+.galeria-miniaturas .miniatura.ativa { border-color: var(--primary); opacity: 1; }
+@media (min-width: 769px) {
+  .galeria-seta { display: flex; }
+}
 .produto-info h1 { font-size: 24px; margin-bottom: 6px; text-transform: none; }
 .produto-sku { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
 .produto-preco-old { font-size: 15px; color: var(--text-muted); text-decoration: line-through; }
@@ -258,7 +284,7 @@ footer { background: var(--charcoal); color: #c8ccd4; margin-top: 50px; }
   .filtros-sidebar { border-radius: 14px; padding: 16px; }
 
   /* ---------- Ficha de produto ---------- */
-  .produto-galeria img { border-radius: 14px; }
+  .galeria-imagem { border-radius: 14px; }
   .produto-info h1 { font-size: 1.3rem; }
   .produto-preco { font-size: 1.7rem; }
   .produto-variacoes .opcao-variacao { padding: 10px 14px; min-height: 44px; display: inline-flex; align-items: center; border-radius: 10px; }
