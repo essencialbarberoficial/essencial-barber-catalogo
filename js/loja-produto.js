@@ -62,6 +62,7 @@ function renderizarProduto(p, variacoes) {
       </div>
       <div class="produto-info">
         <h1>${escapeHtml(p.nome)}</h1>
+        ${p.marca ? `<div class="produto-marca" style="font-size:13px; color:var(--text-muted); margin-bottom:6px;">Marca: <strong>${escapeHtml(p.marca)}</strong></div>` : ''}
         <div class="produto-sku">SKU: ${escapeHtml(p.sku || '—')} ${p.estoque > 0 ? '· <span style="color:var(--success-color)">Em estoque</span>' : '· <span style="color:var(--danger-color)">Sem estoque</span>'}</div>
 
         ${promo ? `<div class="produto-preco-old">${formatCurrency(p.preco)}</div>` : ''}
