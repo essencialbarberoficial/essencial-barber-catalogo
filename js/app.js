@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateCartBadge();
   updateLoginButton();
   carregarCategoriasNav();
+  carregarCategoriasMenuLateral();
   initBuscaHeader();
   carregarConfiguracoesDaLoja();
 
@@ -86,6 +87,69 @@ async function carregarCategoriasNav() {
     nav.innerHTML = principais.map((c) => `<a href="categoria.html?id=${c.id}">${escapeHtml(c.nome)}</a>`).join('');
   } catch (err) {
     console.error('Erro ao carregar categorias do menu', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fase 22 — Menu lateral (celular): mesmas categorias do cabeçalho, só que
+// numa "gaveta" que desliza da esquerda, com sanfona pra subcategorias —
+// evita repetir a navegação de categorias em dois lugares na tela.
+// ---------------------------------------------------------------------------
+function abrirMenuLateral() {
+  document.getElementById('menu-lateral').classList.add('aberto');
+  document.getElementById('overlay-menu-lateral').classList.add('visivel');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharMenuLateral() {
+  document.getElementById('menu-lateral').classList.remove('aberto');
+  document.getElementById('overlay-menu-lateral').classList.remove('visivel');
+  document.body.style.overflow = '';
+}
+
+function alternarSubcategoriasMenu(id) {
+  const linha = document.getElementById(`subcats-menu-${id}`);
+  const seta = document.getElementById(`seta-menu-${id}`);
+  if (!linha) return;
+  const abrindo = !linha.classList.contains('aberta');
+  linha.classList.toggle('aberta', abrindo);
+  if (seta) seta.style.transform = abrindo ? 'rotate(90deg)' : 'rotate(0deg)';
+}
+
+async function carregarCategoriasMenuLateral() {
+  const container = document.getElementById('menu-lateral-categorias');
+  if (!container) return;
+
+  try {
+    const categorias = CATEGORIAS_LOJA.length ? CATEGORIAS_LOJA : await fetch(`${API_BASE}/categorias`).then((r) => r.json());
+    const principais = categorias.filter((c) => !c.paiId && c.status !== 'inativa');
+
+    if (principais.length === 0) {
+      container.innerHTML = '<div class="empty-msg" style="padding:16px;">Nenhuma categoria cadastrada.</div>';
+      return;
+    }
+
+    container.innerHTML = principais.map((cat) => {
+      const subcategorias = categorias.filter((c) => String(c.paiId) === String(cat.id) && c.status !== 'inativa');
+      return `
+        <div class="item-categoria-menu">
+          <a href="categoria.html?id=${cat.id}" class="item-categoria-menu-nome">${escapeHtml(cat.nome)}</a>
+          ${subcategorias.length ? `
+            <button class="item-categoria-menu-seta" id="seta-menu-${cat.id}" onclick="alternarSubcategoriasMenu(${cat.id})" aria-label="Expandir subcategorias">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          ` : ''}
+        </div>
+        ${subcategorias.length ? `
+          <div class="subcategorias-menu" id="subcats-menu-${cat.id}">
+            ${subcategorias.map((sub) => `<a href="categoria.html?id=${sub.id}">${escapeHtml(sub.nome)}</a>`).join('')}
+          </div>
+        ` : ''}
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Erro ao carregar categorias do menu lateral', err);
+    container.innerHTML = '<div class="empty-msg" style="padding:16px;">Não foi possível carregar as categorias.</div>';
   }
 }
 
@@ -451,9 +515,9 @@ async function carregarConfiguracoesDaLoja() {
 }
 
 function updateLoginButton() {
-  const btn = document.getElementById('login-nav-btn');
-  if (!btn) return;
-  btn.textContent = CURRENT_USER ? CURRENT_USER.nome : 'Minha Conta';
+  const span = document.querySelector('#login-nav-btn .texto-nav-desktop');
+  if (!span) return;
+  span.textContent = CURRENT_USER ? CURRENT_USER.nome : 'Minha Conta';
 }
 
 // ---------------------------------------------------------------------------

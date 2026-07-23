@@ -208,6 +208,48 @@ footer { background: var(--charcoal); color: #c8ccd4; margin-top: 50px; }
 }
 
 /* Mobile de verdade (360px–480px, referência 390px) */
+/* ---------- Menu lateral (gaveta) — usado só no celular, acionado pelo
+   hambúrguer. Fica fora do @media porque as regras de largura/posição
+   valem sempre; quem controla "só aparece no celular" é o próprio botão
+   que abre ele (escondido no desktop). ---------- */
+.btn-hamburger {
+  display: none; background: none; border: none; font-size: 20px; cursor: pointer;
+  padding: 8px; min-width: 44px; min-height: 44px; align-items: center; justify-content: center;
+}
+.overlay-menu-lateral {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 90;
+}
+.overlay-menu-lateral.visivel { display: block; }
+.menu-lateral {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 82vw; max-width: 320px;
+  background: #fff; z-index: 91; transform: translateX(-100%); transition: transform 0.25s ease;
+  overflow-y: auto; box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+}
+.menu-lateral.aberto { transform: translateX(0); }
+.menu-lateral-cabecalho {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 16px; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 16px;
+}
+.menu-lateral-cabecalho button { background: none; border: none; font-size: 18px; cursor: pointer; min-width: 44px; min-height: 44px; }
+.item-categoria-menu {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+}
+.item-categoria-menu-nome {
+  flex: 1; padding: 15px 16px; text-decoration: none; color: inherit; font-size: 14px; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.item-categoria-menu-seta {
+  background: none; border: none; padding: 15px 16px; cursor: pointer; color: var(--text-muted); min-width: 44px; min-height: 44px;
+}
+.item-categoria-menu-seta i { transition: transform 0.2s ease; display: inline-block; }
+.subcategorias-menu {
+  max-height: 0; overflow: hidden; transition: max-height 0.25s ease; background: #f8f9fb;
+}
+.subcategorias-menu.aberta { max-height: 500px; }
+.subcategorias-menu a {
+  display: block; padding: 12px 16px 12px 30px; text-decoration: none; color: var(--text-muted); font-size: 13px; border-bottom: 1px solid var(--border-color);
+}
+
 @media (max-width: 480px) {
   html { -webkit-text-size-adjust: 100%; }
   html, body { overflow-x: hidden; max-width: 100vw; }
@@ -216,17 +258,19 @@ footer { background: var(--charcoal); color: #c8ccd4; margin-top: 50px; }
   .header-container, .container, .footer-inner { padding-left: 4vw; padding-right: 4vw; }
   .container { padding-top: 18px; padding-bottom: 18px; }
 
-  /* ---------- Cabeçalho compacto, em duas linhas: marca+ícones / busca ---------- */
+  /* ---------- Cabeçalho compacto, estilo app: hambúrguer + logo + ícones ---------- */
+  .btn-hamburger { display: flex; order: 0; }
   .top-bar {
     height: auto; min-height: 56px; padding: 10px 0;
-    flex-wrap: wrap; gap: 10px; row-gap: 10px;
+    flex-wrap: wrap; gap: 6px; row-gap: 10px;
   }
-  .store-name { order: 1; font-size: 1.15rem; }
-  .nav-actions { order: 2; gap: 6px; }
+  .store-name { order: 1; font-size: 1.05rem; flex: 1; text-align: center; }
+  .nav-actions { order: 2; gap: 2px; }
   .nav-actions .btn {
-    padding: 0 12px; min-height: 44px; min-width: 44px;
-    font-size: 0.78rem; display: flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 0 10px; min-height: 44px; min-width: 44px;
+    font-size: 0.78rem; display: flex; align-items: center; justify-content: center; gap: 4px;
   }
+  .texto-nav-desktop { display: none; } /* no celular, só o ícone (+ contador do carrinho) aparece */
   .search-bar {
     order: 3; flex: 1 1 100%; max-width: 100%; width: 100%;
   }
@@ -237,6 +281,11 @@ footer { background: var(--charcoal); color: #c8ccd4; margin-top: 50px; }
   .search-bar button {
     min-width: 46px; border-radius: 0 22px 22px 0;
   }
+
+  /* A barra de categorias horizontal do cabeçalho só existe no computador —
+     no celular, as categorias moram no menu lateral (gaveta), evitando
+     repetir a mesma navegação em dois lugares na tela. */
+  .category-nav { display: none; }
 
   .category-nav-inner { padding: 0 4vw; gap: 18px; }
   .category-nav a { font-size: 0.72rem; padding: 10px 0; }

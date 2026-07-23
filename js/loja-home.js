@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initHomeLoja();
   initCarrossel();
   aplicarOrdemSecoesHome();
-  carregarCategoriasGrid();
   carregarSecoesProdutos();
 });
 
@@ -22,8 +21,8 @@ async function aplicarOrdemSecoesHome() {
     if (!config.catalogoOrdemSecoes) return;
 
     const ordem = JSON.parse(config.catalogoOrdemSecoes);
-    const padrao = ['categorias', 'destaque', 'ofertas', 'lancamentos'];
-    if (!Array.isArray(ordem) || ordem.length !== 4 || !padrao.every((s) => ordem.includes(s))) return;
+    const padrao = ['destaque', 'ofertas', 'lancamentos'];
+    if (!Array.isArray(ordem) || ordem.length !== 3 || !padrao.every((s) => ordem.includes(s))) return;
 
     // Reinsere cada bloco no DOM na ordem configurada. Usa insertBefore com
     // uma referência fixa (o que vem logo depois do último bloco, ex: a
@@ -64,33 +63,6 @@ function initCarrossel() {
   setInterval(() => mostrar((atual + 1) % slides.length), 6000);
 }
 
-// ---------------------------------------------------------------------------
-// Grade de categorias (principais, direto do painel)
-// ---------------------------------------------------------------------------
-async function carregarCategoriasGrid() {
-  const grid = document.getElementById('categorias-grid');
-  try {
-    const categorias = await fetch(`${API_BASE}/categorias`).then((r) => r.json());
-    const principais = categorias
-      .filter((c) => !c.paiId && c.status !== 'inativa' && c.exibirNoCatalogo !== 0)
-      .sort((a, b) => (a.ordemCatalogo || 0) - (b.ordemCatalogo || 0));
-
-    if (principais.length === 0) {
-      grid.innerHTML = '<div class="empty-msg">Nenhuma categoria cadastrada ainda.</div>';
-      return;
-    }
-
-    grid.innerHTML = principais.map((c) => `
-      <a class="category-tile" href="categoria.html?id=${c.id}">
-        <div class="icon">${escapeHtml(c.nome.charAt(0).toUpperCase())}</div>
-        ${escapeHtml(c.nome)}
-      </a>
-    `).join('');
-  } catch (err) {
-    console.error('Erro ao carregar categorias', err);
-    grid.innerHTML = '<div class="empty-msg">Não foi possível carregar as categorias.</div>';
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Destaques / Ofertas / Lançamentos — tudo a partir dos produtos reais

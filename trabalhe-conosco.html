@@ -12,14 +12,15 @@
 <header>
     <div class="header-container">
         <div class="top-bar">
+            <button class="btn-hamburger" onclick="abrirMenuLateral()" aria-label="Abrir menu de categorias"><i class="fa-solid fa-bars"></i></button>
             <a href="index.html" class="store-name">Essencial <span>Barber</span></a>
             <form class="search-bar" id="form-busca-header">
                 <input type="text" id="input-busca-header" placeholder="Buscar pomada, óleo, navalha...">
                 <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
             </form>
             <div class="nav-actions">
-                <button class="btn btn-secondary" onclick="openCartModal()"><i class="fa-solid fa-cart-shopping"></i> Carrinho (<span id="cart-badge">0</span>)</button>
-                <button class="btn" onclick="openLoginModal()" id="login-nav-btn">Minha Conta</button>
+                <button class="btn btn-secondary" onclick="openCartModal()"><i class="fa-solid fa-cart-shopping"></i> <span class="texto-nav-desktop">Carrinho (</span><span id="cart-badge">0</span><span class="texto-nav-desktop">)</span></button>
+                <button class="btn" onclick="openLoginModal()" id="login-nav-btn"><i class="fa-solid fa-user"></i> <span class="texto-nav-desktop">Minha Conta</span></button>
             </div>
         </div>
         <div id="logo-catalogo-container" style="display:none; text-align:center; padding:10px 0 4px;">
@@ -30,6 +31,15 @@
         <div class="category-nav-inner" id="category-nav-list"></div>
     </nav>
 </header>
+
+<div id="overlay-menu-lateral" class="overlay-menu-lateral" onclick="fecharMenuLateral()"></div>
+<aside id="menu-lateral" class="menu-lateral">
+    <div class="menu-lateral-cabecalho">
+        <span>Categorias</span>
+        <button onclick="fecharMenuLateral()" aria-label="Fechar menu"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="menu-lateral-categorias" class="menu-lateral-categorias"><div class="empty-msg" style="padding:16px;">Carregando...</div></div>
+</aside>
 
 <main class="container" data-pagina-slug="trabalhe-conosco" style="max-width:820px;">
     <div class="breadcrumb"><a href="index.html">Home</a> &raquo; Trabalhe Conosco</div>
