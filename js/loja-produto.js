@@ -180,38 +180,42 @@ async function calcularFrete() {
   const cepInformado = document.getElementById('frete-cep').value.replace(/\D/g, '');
   resultado.innerHTML = '<p style="font-size:12px; color:var(--text-muted);">Calculando...</p>';
 
-  // Se o cliente informou um CEP válido (8 dígitos), tenta a cotação real
-  // primeiro. Sem CEP, ou se a cotação real não estiver disponível, cai
-  // para as opções de entrega cadastradas manualmente (sempre funciona).
-  if (cepInformado.length === 8) {
-    try {
-      const resposta = await fetch(`${API_BASE}/frete/cotar`, {
+  // Sempre busca as duas fontes em paralelo — a cotação real da
+  // SuperFrete (se um CEP válido foi informado) e as formas de entrega
+  // cadastradas manualmente (retirada na loja, motoboy próprio, etc.) —
+  // e mostra as duas juntas, uma lista só. Antes, quando a SuperFrete
+  // respondia com sucesso, as formas cadastradas ficavam escondidas.
+  const buscaSuperfrete = cepInformado.length === 8
+    ? fetch(`${API_BASE}/frete/cotar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ produtoId: PRODUTO_ATUAL.id, cepDestino: cepInformado, quantidade: 1 })
-      });
-      const dados = await resposta.json();
+      }).then((r) => r.json()).catch((err) => { console.error('Erro ao cotar frete real', err); return { ok: false }; })
+    : Promise.resolve({ ok: false });
 
-      if (dados.ok && dados.cotacoes && dados.cotacoes.length > 0) {
-        resultado.innerHTML = dados.cotacoes.map((c) => `
-          <div class="frete-opcao">
-            <span>${escapeHtml(c.nome)}${c.transportadora ? ' — ' + escapeHtml(c.transportadora) : ''} (até ${c.prazoDias} dia${c.prazoDias === 1 ? '' : 's'})</span>
-            <strong>${formatCurrency(c.preco)}</strong>
-          </div>
-        `).join('');
-        return;
-      }
-    } catch (err) {
-      console.error('Erro ao cotar frete real, usando opções cadastradas', err);
-    }
-  }
+  const buscaEntregas = fetch(`${API_BASE}/entregas`).then((r) => r.json()).catch((err) => { console.error('Erro ao carregar formas de entrega', err); return []; });
 
   try {
-    const entregas = await fetch(`${API_BASE}/entregas`).then((r) => r.json());
-    const ativas = entregas.filter((e) => e.status !== 'inativo');
-    resultado.innerHTML = ativas.length
-      ? ativas.map((e) => `<div class="frete-opcao"><span>${escapeHtml(e.nome)} (${escapeHtml(e.prazo || '-')})</span><strong>${e.custo > 0 ? formatCurrency(e.custo) : 'Grátis'}</strong></div>`).join('')
-      : '<p style="font-size:12px; color:var(--text-muted);">Nenhuma opção de entrega cadastrada.</p>';
+    const [dadosSuperfrete, todasEntregas] = await Promise.all([buscaSuperfrete, buscaEntregas]);
+
+    const opcoesSuperfrete = (dadosSuperfrete.ok && dadosSuperfrete.cotacoes) ? dadosSuperfrete.cotacoes.map((c) => `
+      <div class="frete-opcao">
+        <span>${escapeHtml(c.nome)}${c.transportadora ? ' — ' + escapeHtml(c.transportadora) : ''} (até ${c.prazoDias} dia${c.prazoDias === 1 ? '' : 's'})</span>
+        <strong>${formatCurrency(c.preco)}</strong>
+      </div>
+    `) : [];
+
+    const opcoesCadastradas = todasEntregas.filter((e) => e.status !== 'inativo').map((e) => `
+      <div class="frete-opcao">
+        <span>${escapeHtml(e.nome)} (${escapeHtml(e.prazo || '-')})</span>
+        <strong>${e.custo > 0 ? formatCurrency(e.custo) : 'Grátis'}</strong>
+      </div>
+    `);
+
+    const todasOpcoes = [...opcoesSuperfrete, ...opcoesCadastradas];
+    resultado.innerHTML = todasOpcoes.length > 0
+      ? todasOpcoes.join('')
+      : '<p style="font-size:12px; color:var(--text-muted);">Nenhuma opção de entrega disponível no momento.</p>';
   } catch (err) {
     console.error(err);
     resultado.innerHTML = '<p style="font-size:12px; color:var(--danger-color);">Não foi possível calcular o frete agora.</p>';
