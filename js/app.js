@@ -240,6 +240,32 @@ function cartTotal() {
 }
 
 let CUPOM_APLICADO = null; // { codigo, tipo, valor, desconto }
+let VENDEDOR_APLICADO = null; // { vendedorId, nome }
+
+async function verificarVendedorCarrinho() {
+  const input = document.getElementById('cart-vendedor-input');
+  const mensagem = document.getElementById('cart-vendedor-mensagem');
+  const codigo = input.value.trim();
+
+  if (!codigo) { mensagem.innerHTML = ''; VENDEDOR_APLICADO = null; return; }
+  mensagem.innerHTML = '<span style="color:var(--text-muted);">Verificando...</span>';
+
+  try {
+    const resposta = await fetch(`${API_BASE}/vendedores/verificar-codigo/${encodeURIComponent(codigo)}`);
+    const dados = await resposta.json();
+
+    if (!dados.encontrado) {
+      VENDEDOR_APLICADO = null;
+      mensagem.innerHTML = '<span style="color:var(--danger-color, #dc2626);">❌ Código não encontrado.</span>';
+    } else {
+      VENDEDOR_APLICADO = dados;
+      mensagem.innerHTML = `<span style="color:var(--success-color, #16a34a);">✅ Atendido por ${escapeHtml(dados.nome)}</span>`;
+    }
+  } catch (err) {
+    console.error('Erro ao verificar código de vendedor', err);
+    mensagem.innerHTML = '<span style="color:var(--danger-color, #dc2626);">Erro ao verificar código.</span>';
+  }
+}
 
 async function aplicarCupomCarrinho() {
   const input = document.getElementById('cart-cupom-input');
@@ -549,6 +575,7 @@ async function checkout() {
         clienteId: CURRENT_USER.id, status: 'recebido', total, observacoes, itens,
         origem: 'catalogo-online', criadoEm: new Date().toISOString(),
         cupomCodigo: CUPOM_APLICADO ? CUPOM_APLICADO.codigo : null,
+        vendedorId: VENDEDOR_APLICADO ? VENDEDOR_APLICADO.vendedorId : null,
         valorDesconto: CUPOM_APLICADO ? CUPOM_APLICADO.desconto : 0
       })
     }).then((r) => r.json());

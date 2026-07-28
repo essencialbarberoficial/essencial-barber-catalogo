@@ -84,6 +84,12 @@
         </div>
         <div id="cart-cupom-mensagem" style="font-size:12px; margin-bottom:10px;"></div>
 
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <input type="text" id="cart-vendedor-input" placeholder="INCLUIR VENDEDOR (opcional)" style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:6px; text-transform:uppercase;">
+            <button class="btn-secondary btn" onclick="verificarVendedorCarrinho()">Aplicar</button>
+        </div>
+        <div id="cart-vendedor-mensagem" style="font-size:12px; margin-bottom:10px;"></div>
+
         <div style="margin-bottom:20px;">
             <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--text-muted);">
                 <span>Subtotal</span><span id="cart-subtotal">R$ 0,00</span>
