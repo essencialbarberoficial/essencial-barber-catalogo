@@ -202,7 +202,9 @@ async function addToCart(produtoId, opcoes = {}) {
     const produto = await fetch(`${API_BASE}/produtos/${produtoId}`).then((r) => r.json());
     const chaveItem = produtoId + (opcoes.variacaoId ? `-${opcoes.variacaoId}` : '');
     const item = CART.find((i) => i.chave === chaveItem);
-    const precoUnit = precoFinal(produto) + (opcoes.precoAdicional || 0);
+    // Igual na página do produto: preço da variação é o preço final dela,
+    // não uma soma com o preço do produto principal.
+    const precoUnit = (opcoes.precoAdicional && opcoes.precoAdicional > 0) ? opcoes.precoAdicional : precoFinal(produto);
 
     if (item) {
       item.qty += 1;

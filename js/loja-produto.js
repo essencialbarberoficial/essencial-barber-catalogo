@@ -154,7 +154,10 @@ function selecionarVariacao(variacaoId) {
     el.classList.toggle('selecionada', Number(el.dataset.id) === variacaoId);
   });
 
-  const precoComVariacao = precoFinal(PRODUTO_ATUAL) + (opcao.precoAdicional || 0);
+  // O preço cadastrado na variação é o preço FINAL daquela variação (não
+  // um valor a somar com o produto principal) — se a variação não tiver
+  // preço próprio definido (0 ou vazio), usa o preço do produto principal.
+  const precoComVariacao = (opcao.precoAdicional && opcao.precoAdicional > 0) ? opcao.precoAdicional : precoFinal(PRODUTO_ATUAL);
   document.getElementById('produto-preco-exibido').textContent = formatCurrency(precoComVariacao);
 }
 
