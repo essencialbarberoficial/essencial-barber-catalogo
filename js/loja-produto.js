@@ -15,11 +15,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    const [produto, categorias, variacoes, imagens] = await Promise.all([
+    const [produto, categorias, variacoes, imagens, especificacoes] = await Promise.all([
       fetch(`${API_BASE}/produtos/${id}`).then((r) => { if (!r.ok) throw new Error('não encontrado'); return r.json(); }),
       fetch(`${API_BASE}/categorias`).then((r) => r.json()),
       fetch(`${API_BASE}/produtos/${id}/variacoes`).then((r) => r.json()),
-      fetch(`${API_BASE}/produtos/${id}/imagens`).then((r) => r.json()).catch(() => [])
+      fetch(`${API_BASE}/produtos/${id}/imagens`).then((r) => r.json()).catch(() => []),
+      fetch(`${API_BASE}/produtos/${id}/especificacoes`).then((r) => r.json()).catch(() => [])
     ]);
 
     PRODUTO_ATUAL = produto;
@@ -27,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     TODAS_CATEGORIAS_PRODUTO = categorias;
 
     montarBreadcrumbProduto(produto, categorias);
-    renderizarProduto(produto, variacoes, imagens);
+    renderizarProduto(produto, variacoes, imagens, especificacoes);
     carregarRelacionadosSemelhantes(produto, categorias);
   } catch (err) {
     console.error('Erro ao carregar produto', err);
@@ -49,12 +50,11 @@ function montarBreadcrumbProduto(produto, categorias) {
     ` &raquo; ${escapeHtml(produto.nome)}`;
 }
 
-function renderizarProduto(p, variacoes, imagensRecebidas) {
+function renderizarProduto(p, variacoes, imagensRecebidas, especificacoes) {
   document.title = `${p.nome} | Essencial Barber`;
   document.getElementById('page-title').textContent = `${p.nome} | Essencial Barber`;
 
   const promo = p.precoPromocional && p.precoPromocional > 0;
-  const especificacoes = parseCaracteristicas(p.caracteristicas);
 
   // Se o produto ainda não tem imagens cadastradas na tabela nova (produto
   // antigo, criado antes da Fase 21), cai pro campo único de sempre — pra
@@ -110,19 +110,16 @@ function renderizarProduto(p, variacoes, imagensRecebidas) {
           <div id="frete-resultado"></div>
         </div>
 
-        <div class="produto-tabs">
-          <div class="tab-buttons">
-            <button class="active" onclick="mostrarTab('descricao', this)">Descrição</button>
-            <button onclick="mostrarTab('especificacoes', this)">Especificações Técnicas</button>
-          </div>
-          <div class="tab-panel active" id="tab-descricao">${escapeHtml(p.descricao || 'Sem descrição cadastrada para este produto.')}</div>
-          <div class="tab-panel" id="tab-especificacoes">
-            ${especificacoes.length ? `
-              <table class="specs-table">
-                ${especificacoes.map(([chave, valor]) => `<tr><td>${escapeHtml(chave)}</td><td>${escapeHtml(valor)}</td></tr>`).join('')}
-              </table>
-            ` : '<p style="color:var(--text-muted); font-size:13px;">Nenhuma especificação técnica cadastrada.</p>'}
-          </div>
+        <div class="produto-descricao-especificacao">
+          <h3 style="font-size:16px; margin-bottom:8px;">Descrição</h3>
+          <div class="produto-descricao-texto">${p.descricaoCompleta || (p.descricao ? escapeHtml(p.descricao) : 'Sem descrição cadastrada para este produto.')}</div>
+
+          ${especificacoes.length ? `
+            <h3 style="font-size:16px; margin:20px 0 8px;">Especificação</h3>
+            <table class="specs-table">
+              ${especificacoes.map((e) => `<tr><td>${escapeHtml(e.atributo)}</td><td>${escapeHtml(e.valor)}</td></tr>`).join('')}
+            </table>
+          ` : ''}
         </div>
       </div>
     </div>

@@ -160,6 +160,12 @@ header { background: #fff; border-bottom: 1px solid var(--border-color); positio
 .specs-table { width: 100%; border-collapse: collapse; }
 .specs-table td { padding: 9px 0; border-bottom: 1px solid var(--border-color); font-size: 13px; }
 .specs-table td:first-child { color: var(--text-muted); width: 40%; }
+.produto-descricao-especificacao { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color); }
+.produto-descricao-texto { font-size: 14px; line-height: 1.7; color: #464e5f; }
+.produto-descricao-texto p { margin: 0 0 12px; }
+.produto-descricao-texto ul, .produto-descricao-texto ol { margin: 0 0 12px; padding-left: 1.3em; }
+.produto-descricao-texto h2 { font-size: 16px; margin: 16px 0 8px; }
+.produto-descricao-texto h3 { font-size: 14px; margin: 14px 0 6px; }
 
 /* ---------- BENEFÍCIOS DA LOJA ---------- */
 .beneficios-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin: 40px 0; }
