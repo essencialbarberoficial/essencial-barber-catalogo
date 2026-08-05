@@ -348,7 +348,54 @@ function renderCart() {
 
 function openCartModal() {
   renderCart();
+  garantirSecaoEnderecoCarrinho();
   document.getElementById('cart-modal').classList.add('open');
+}
+
+// Injeta a seção de Endereço de Entrega no carrinho, logo acima do botão
+// "Finalizar Pedido" — feito por JS (não duplicado em cada página HTML)
+// porque o modal do carrinho é repetido em várias páginas do catálogo.
+function garantirSecaoEnderecoCarrinho() {
+  if (document.getElementById('cart-endereco-secao')) {
+    preencherEnderecoCarrinho();
+    return;
+  }
+  const botaoFinalizar = document.querySelector('#cart-modal button[onclick="checkout()"]');
+  if (!botaoFinalizar) return;
+
+  const secao = document.createElement('div');
+  secao.id = 'cart-endereco-secao';
+  secao.style.cssText = 'margin-bottom:16px; padding-top:14px; border-top:1px solid var(--border-color);';
+  secao.innerHTML = `
+    <div style="font-size:13px; font-weight:600; margin-bottom:8px;">Endereço de Entrega</div>
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <input type="text" id="cart-end-endereco" placeholder="Rua e número" style="flex:2; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+      <input type="text" id="cart-end-bairro" placeholder="Bairro" style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <input type="text" id="cart-end-cidade" placeholder="Cidade" style="flex:2; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+      <input type="text" id="cart-end-cep" placeholder="CEP" style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:4px;">
+      <input type="text" id="cart-end-complemento" placeholder="Complemento (opcional)" style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:6px;">
+    </div>
+  `;
+  botaoFinalizar.parentElement.insertBefore(secao, botaoFinalizar);
+  preencherEnderecoCarrinho();
+}
+
+// Sugere o endereço já cadastrado do cliente — mas os campos continuam
+// livres pra editar, caso a entrega seja num lugar diferente dessa vez.
+function preencherEnderecoCarrinho() {
+  if (!CURRENT_USER) return;
+  const campoEndereco = document.getElementById('cart-end-endereco');
+  if (!campoEndereco) return;
+  // Só preenche se o campo ainda estiver vazio — não sobrescreve o que a
+  // pessoa já tiver digitado nessa mesma visita.
+  if (!campoEndereco.value) campoEndereco.value = CURRENT_USER.endereco || '';
+  if (!document.getElementById('cart-end-bairro').value) document.getElementById('cart-end-bairro').value = CURRENT_USER.bairro || '';
+  if (!document.getElementById('cart-end-cidade').value) document.getElementById('cart-end-cidade').value = CURRENT_USER.cidade || '';
+  if (!document.getElementById('cart-end-cep').value) document.getElementById('cart-end-cep').value = CURRENT_USER.cep || '';
 }
 
 function closeCartModal() {
@@ -569,6 +616,18 @@ async function checkout() {
     produtoId: i.id, variacaoId: i.variacaoId || null, nome: i.nome, quantidade: i.qty, precoUnitario: i.preco
   }));
 
+  const enderecoEntrega = {
+    endereco: (document.getElementById('cart-end-endereco')?.value || '').trim(),
+    bairro: (document.getElementById('cart-end-bairro')?.value || '').trim(),
+    cidade: (document.getElementById('cart-end-cidade')?.value || '').trim(),
+    cep: (document.getElementById('cart-end-cep')?.value || '').trim(),
+    complemento: (document.getElementById('cart-end-complemento')?.value || '').trim()
+  };
+  if (!enderecoEntrega.endereco || !enderecoEntrega.cidade) {
+    alert('Preencha o endereço de entrega (rua e cidade) antes de finalizar o pedido.');
+    return;
+  }
+
   try {
     const pedido = await fetch(`${API_BASE}/pedidos`, {
       method: 'POST',
@@ -578,7 +637,8 @@ async function checkout() {
         origem: 'catalogo-online', criadoEm: new Date().toISOString(),
         cupomCodigo: CUPOM_APLICADO ? CUPOM_APLICADO.codigo : null,
         vendedorId: VENDEDOR_APLICADO ? VENDEDOR_APLICADO.vendedorId : null,
-        valorDesconto: CUPOM_APLICADO ? CUPOM_APLICADO.desconto : 0
+        valorDesconto: CUPOM_APLICADO ? CUPOM_APLICADO.desconto : 0,
+        enderecoEntregaJson: JSON.stringify(enderecoEntrega)
       })
     }).then((r) => r.json());
 
