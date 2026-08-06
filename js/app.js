@@ -563,6 +563,28 @@ async function checkout() {
     return;
   }
 
+  // Confirma que o cliente guardado no navegador ainda existe de verdade
+  // no banco — sem isso, se o cadastro tivesse sumido por qualquer
+  // motivo, o pedido nasceria "quebrado" (com um cliente que não existe),
+  // e só descobriríamos isso depois, no painel.
+  try {
+    const verificacao = await fetch(`${API_BASE}/loja/verificar-cliente/${CURRENT_USER.id}`).then((r) => r.json());
+    if (!verificacao.existe) {
+      localStorage.removeItem('storeUser');
+      CURRENT_USER = null;
+      updateLoginButton();
+      closeCartModal();
+      alert('Sua identificação expirou — por favor, informe seu nome e WhatsApp novamente pra finalizar o pedido.');
+      openLoginModal();
+      return;
+    }
+  } catch (err) {
+    console.error('Erro ao verificar cliente antes do checkout', err);
+    // Se a verificação falhar por instabilidade de rede, segue o fluxo
+    // normal em vez de travar a compra — a validação é uma proteção
+    // extra, não pode virar um bloqueio se ela mesma falhar.
+  }
+
   const { total } = totalComDesconto();
   const observacoes = CART.map((i) => `${i.qty}x ${i.nome}`).join(', ');
   const itens = CART.map((i) => ({
