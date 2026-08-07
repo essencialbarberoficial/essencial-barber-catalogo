@@ -281,6 +281,11 @@ function renderizarEtapaRevisao() {
     </div>
 
     <div class="card-panel" style="margin-bottom:16px;">
+      <h4 style="font-size:13px; text-transform:uppercase; margin-bottom:10px; color:var(--text-muted);">Observação (opcional)</h4>
+      <textarea id="observacao-cliente-checkout" rows="2" maxlength="500" placeholder="Alguma observação sobre o seu pedido? Ex: ponto de referência, preferência de horário..." style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:8px; resize:none; font-family:inherit;">${escapeHtml(p.observacoesCliente || '')}</textarea>
+    </div>
+
+    <div class="card-panel" style="margin-bottom:16px;">
       <h4 style="font-size:13px; text-transform:uppercase; margin-bottom:10px; color:var(--text-muted);">Resumo Financeiro</h4>
       <div style="display:flex; justify-content:space-between; font-size:14px; padding:4px 0;"><span>Subtotal</span><span>${formatCurrency(p.subtotal)}</span></div>
       ${p.valorDesconto > 0 ? `<div style="display:flex; justify-content:space-between; font-size:14px; padding:4px 0; color:var(--success-color, #16a34a);"><span>Desconto${p.cupomCodigo ? ' (' + escapeHtml(p.cupomCodigo) + ')' : ''}</span><span>- ${formatCurrency(p.valorDesconto)}</span></div>` : ''}
@@ -313,6 +318,15 @@ function confirmarRevisaoEIrParaPagamento() {
     erroEl.textContent = 'Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar.';
     return;
   }
+
+  const observacoesCliente = document.getElementById('observacao-cliente-checkout').value.trim();
+  fetch(`${API_BASE}/pedidos/${PEDIDO_ATUAL.id}/definir-observacao`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ observacoesCliente })
+  }).catch((err) => console.error('Erro ao salvar observação', err));
+  // Não bloqueia o avanço pro pagamento se isso falhar — a observação é
+  // um detalhe complementar, não pode travar a compra.
+  PEDIDO_ATUAL.observacoesCliente = observacoesCliente;
 
   renderizarEtapaPagamento();
 }

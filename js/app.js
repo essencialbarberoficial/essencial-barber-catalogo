@@ -606,7 +606,6 @@ async function checkout() {
   }
 
   const { total } = totalComDesconto();
-  const observacoes = CART.map((i) => `${i.qty}x ${i.nome}`).join(', ');
   const itens = CART.map((i) => ({
     produtoId: i.id, variacaoId: i.variacaoId || null, nome: i.nome, quantidade: i.qty, precoUnitario: i.preco
   }));
@@ -616,7 +615,7 @@ async function checkout() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        clienteId: CURRENT_USER.id, status: 'recebido', total, observacoes, itens,
+        clienteId: CURRENT_USER.id, status: 'recebido', total, itens,
         origem: 'catalogo-online', criadoEm: new Date().toISOString(),
         cupomCodigo: CUPOM_APLICADO ? CUPOM_APLICADO.codigo : null,
         vendedorId: VENDEDOR_APLICADO ? VENDEDOR_APLICADO.vendedorId : null,
