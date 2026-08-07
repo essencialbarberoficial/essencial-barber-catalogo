@@ -244,29 +244,48 @@ function cartTotal() {
 let CUPOM_APLICADO = null; // { codigo, tipo, valor, desconto }
 let VENDEDOR_APLICADO = null; // { vendedorId, nome }
 
-async function verificarVendedorCarrinho() {
-  const input = document.getElementById('cart-vendedor-input');
-  const mensagem = document.getElementById('cart-vendedor-mensagem');
-  const codigo = input.value.trim();
-
-  if (!codigo) { mensagem.innerHTML = ''; VENDEDOR_APLICADO = null; return; }
-  mensagem.innerHTML = '<span style="color:var(--text-muted);">Verificando...</span>';
-
-  try {
-    const resposta = await fetch(`${API_BASE}/vendedores/verificar-codigo/${encodeURIComponent(codigo)}`);
-    const dados = await resposta.json();
-
-    if (!dados.encontrado) {
-      VENDEDOR_APLICADO = null;
-      mensagem.innerHTML = '<span style="color:var(--danger-color, #dc2626);">❌ Código não encontrado.</span>';
-    } else {
-      VENDEDOR_APLICADO = dados;
-      mensagem.innerHTML = `<span style="color:var(--success-color, #16a34a);">✅ Atendido por ${escapeHtml(dados.nome)}</span>`;
-    }
-  } catch (err) {
-    console.error('Erro ao verificar código de vendedor', err);
-    mensagem.innerHTML = '<span style="color:var(--danger-color, #dc2626);">Erro ao verificar código.</span>';
+// Troca o campo de "código do vendedor" (texto livre, fácil de esquecer)
+// por um select de verdade, puxado direto do cadastro de vendedores —
+// só roda uma vez, na primeira vez que o carrinho é aberto.
+async function garantirSelectVendedorCarrinho() {
+  const inputAntigo = document.getElementById('cart-vendedor-input');
+  if (!inputAntigo || inputAntigo.tagName === 'SELECT') {
+    if (inputAntigo) await preencherSelectVendedorCarrinho(inputAntigo);
+    return;
   }
+
+  const select = document.createElement('select');
+  select.id = 'cart-vendedor-input';
+  select.className = inputAntigo.className;
+  select.style.cssText = inputAntigo.style.cssText;
+  select.onchange = selecionarVendedorCarrinho;
+  inputAntigo.replaceWith(select);
+  await preencherSelectVendedorCarrinho(select);
+}
+
+async function preencherSelectVendedorCarrinho(select) {
+  try {
+    const vendedores = await fetch(`${API_BASE}/loja/vendedores`).then((r) => r.json());
+    const valorAtual = select.value;
+    select.innerHTML = '<option value="">Nenhum vendedor específico</option>' +
+      vendedores.map((v) => `<option value="${v.id}">${escapeHtml(v.nome)}</option>`).join('');
+    select.value = valorAtual;
+  } catch (err) {
+    console.error('Erro ao carregar vendedores', err);
+  }
+}
+
+function selecionarVendedorCarrinho() {
+  const select = document.getElementById('cart-vendedor-input');
+  const mensagem = document.getElementById('cart-vendedor-mensagem');
+  if (!select.value) {
+    VENDEDOR_APLICADO = null;
+    if (mensagem) mensagem.innerHTML = '';
+    return;
+  }
+  const nomeEscolhido = select.options[select.selectedIndex].textContent;
+  VENDEDOR_APLICADO = { vendedorId: select.value, nome: nomeEscolhido };
+  if (mensagem) mensagem.innerHTML = `<span style="color:var(--success-color, #16a34a);">✅ Atendido por ${escapeHtml(nomeEscolhido)}</span>`;
 }
 
 async function aplicarCupomCarrinho() {
@@ -348,6 +367,7 @@ function renderCart() {
 
 function openCartModal() {
   renderCart();
+  garantirSelectVendedorCarrinho();
   document.getElementById('cart-modal').classList.add('open');
 }
 
