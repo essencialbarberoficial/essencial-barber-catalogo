@@ -628,8 +628,19 @@ function iniciarPollingStatusPedido() {
 // CARTÃO — formulário seguro do próprio Mercado Pago (Card Payment Brick).
 // Os dados do cartão nunca passam pelo nosso servidor.
 // ---------------------------------------------------------------------------
+let CARD_BRICK_CONTROLLER = null; // controla o formulário de cartão do Mercado Pago, pra poder desmontar antes de recriar
+
 async function iniciarPagamentoCartao() {
   const container = document.getElementById('card-payment-brick-container');
+
+  // O SDK do Mercado Pago mantém o formulário anterior "vivo" internamente
+  // mesmo depois de limpar o HTML do container — sem desmontar de
+  // verdade, a segunda tentativa de criar o formulário (ex: cliente troca
+  // pra Pix e volta pro Cartão) falha com "tente novamente mais tarde".
+  if (CARD_BRICK_CONTROLLER) {
+    try { await CARD_BRICK_CONTROLLER.unmount(); } catch (err) { /* já tinha sido desmontado, ignora */ }
+    CARD_BRICK_CONTROLLER = null;
+  }
   container.innerHTML = '';
 
   if (!CHECKOUT_CONFIG.publicKey) {
@@ -643,7 +654,7 @@ async function iniciarPagamentoCartao() {
 
   const bricksBuilder = MP_INSTANCE.bricks();
 
-  await bricksBuilder.create('cardPayment', 'card-payment-brick-container', {
+  CARD_BRICK_CONTROLLER = await bricksBuilder.create('cardPayment', 'card-payment-brick-container', {
     initialization: { amount: PEDIDO_ATUAL.total },
     callbacks: {
       onReady: () => {},
