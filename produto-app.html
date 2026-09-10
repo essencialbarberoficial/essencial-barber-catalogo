@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Produto | Essencial Barber</title>
+    <!-- CORREÇÃO: FontAwesome carregado sem bloquear a página — se esse CDN
+         estiver lento ou inacessível na rede, a loja continua funcionando
+         normalmente (só os ícones ficam ausentes até o CSS chegar, em vez
+         de travar a página inteira em "Carregando"). -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+    <div class="header-container">
+        <div class="top-bar">
+            <button class="btn-hamburger" onclick="abrirMenuLateral()" aria-label="Abrir menu de categorias"><i class="fa-solid fa-bars"></i></button>
+            <a href="index.html" class="store-name">Essencial <span>Barber</span></a>
+            <form class="search-bar" id="form-busca-header">
+                <input type="text" id="input-busca-header" placeholder="Buscar pomada, óleo, navalha...">
+                <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+            <div class="nav-actions">
+                <button class="btn btn-secondary" onclick="openCartModal()"><i class="fa-solid fa-cart-shopping"></i> <span class="texto-nav-desktop">Carrinho (</span><span id="cart-badge">0</span><span class="texto-nav-desktop">)</span></button>
+                <button class="btn" onclick="handleCliqueMinhaConta()" id="login-nav-btn" aria-label="Minha Conta" title="Minha Conta"><i class="fa-solid fa-user"></i></button>
+            </div>
+        </div>
+        <div id="logo-catalogo-container" style="display:none; text-align:center; padding:10px 0 4px;">
+            <img id="logo-catalogo-img" src="" alt="Logo" style="max-height:64px; max-width:220px;">
+        </div>
+    </div>
+    <nav class="category-nav">
+        <div class="category-nav-inner" id="category-nav-list"></div>
+    </nav>
+</header>
+
+<div id="overlay-menu-lateral" class="overlay-menu-lateral" onclick="fecharMenuLateral()"></div>
+<aside id="menu-lateral" class="menu-lateral">
+    <div class="menu-lateral-cabecalho">
+        <span>Categorias</span>
+        <button onclick="fecharMenuLateral()" aria-label="Fechar menu"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="menu-lateral-categorias" class="menu-lateral-categorias"><div class="empty-msg" style="padding:16px;">Carregando...</div></div>
+</aside>
+
+<main class="container">
+    <div class="breadcrumb" id="breadcrumb"><a href="index.html">Home</a></div>
+
+    <div id="produto-conteudo">
+        <div class="empty-msg">Carregando produto...</div>
+    </div>
+
+    <div class="section-title" id="titulo-relacionados" style="display:none;"><h2>Produtos Relacionados</h2></div>
+    <section class="product-grid" id="grid-relacionados"></section>
+
+    <div class="section-title" id="titulo-semelhantes" style="display:none;"><h2>Produtos Semelhantes</h2></div>
+    <section class="product-grid" id="grid-semelhantes"></section>
+</main>
+
+<footer>
+    <div class="footer-inner">
+        <div class="footer-col">
+            <h5>Institucional</h5>
+            <a href="sobre.html">Quem Somos</a>
+            <a href="trabalhe-conosco.html">Trabalhe Conosco</a>
+            <a href="nossas-lojas.html">Nossas Lojas</a>
+            <a href="faq.html">Perguntas Frequentes</a>
+        </div>
+        <div class="footer-col">
+            <h5>Atendimento</h5>
+            <a href="contato.html">Contatos</a>
+            <a href="politica-privacidade.html">Política de Privacidade</a>
+            <a href="trocas-devolucoes.html">Trocas e Devoluções</a>
+            <a href="termos.html">Termos de Uso</a>
+        </div>
+        <div class="footer-col">
+            <h5>Fale Conosco</h5>
+            <a href="https://wa.me/5591987697528" target="_blank" id="footer-whatsapp-link">WhatsApp: (91) 98769-7528</a>
+            <a href="mailto:contato@essencialbarber.com.br">contato@essencialbarber.com.br</a>
+        </div>
+    </div>
+    <div class="footer-bottom"><span id="footer-bottom-texto">Essencial Barber · CNPJ 34.579.767.0001-39 · AV.maxímino porpino da silva,2144,castanhal/PA</span> · © 2026 Todos os direitos reservados.</div>
+</footer>
+
+<div id="cart-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeCartModal()">&times;</span>
+        <h3>Seu Carrinho</h3>
+        <div id="cart-items" style="margin:20px 0; max-height:300px; overflow-y:auto;"></div>
+
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <input type="text" id="cart-cupom-input" placeholder="Código do cupom" style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:6px; text-transform:uppercase;">
+            <button class="btn-secondary btn" onclick="aplicarCupomCarrinho()">Aplicar</button>
+        </div>
+        <div id="cart-cupom-mensagem" style="font-size:12px; margin-bottom:10px;"></div>
+
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <input type="text" id="cart-vendedor-input" placeholder="INCLUIR VENDEDOR (opcional)" style="flex:1; padding:8px; border:1px solid var(--border-color); border-radius:6px; text-transform:uppercase;">
+            <button class="btn-secondary btn" onclick="verificarVendedorCarrinho()">Aplicar</button>
+        </div>
+        <div id="cart-vendedor-mensagem" style="font-size:12px; margin-bottom:10px;"></div>
+
+        <div style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--text-muted);">
+                <span>Subtotal</span><span id="cart-subtotal">R$ 0,00</span>
+            </div>
+            <div id="cart-linha-desconto" style="display:none; justify-content:space-between; font-size:14px; color:var(--success-color, #16a34a);">
+                <span>Desconto</span><span id="cart-desconto">- R$ 0,00</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:bold; margin-top:6px; padding-top:6px; border-top:1px solid var(--border-color);">
+                <span>Total</span><span id="cart-total">R$ 0,00</span>
+            </div>
+        </div>
+
+        <button class="btn" style="width:100%;" onclick="checkout()">Finalizar Pedido</button>
+    </div>
+</div>
+
+
+<!-- Fase 24/25 — Área de Usuário: login com senha, oferecido pelo ícone
+     de perfil no topo. A identificação simples que existia antes foi
+     removida — o checkout agora coleta os dados completos na própria
+     tela de checkout, sem pedir login antes da compra. -->
+<div id="conta-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeContaModal()">&times;</span>
+
+        <!-- ENTRAR -->
+        <div id="conta-etapa-entrar">
+            <h3>Entrar na Minha Conta</h3>
+            <form onsubmit="handleEntrarConta(event)">
+                <div class="form-group">
+                    <label>E-mail ou Telefone</label>
+                    <input type="text" id="conta-entrar-identificador" class="form-control" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="conta-entrar-senha" class="form-control" required autocomplete="current-password">
+                </div>
+                <p id="conta-entrar-erro" style="color:var(--danger-color); font-size:12px; margin-bottom:10px;"></p>
+                <button type="submit" class="btn" style="width:100%;">Entrar</button>
+            </form>
+            <p style="text-align:center; margin-top:14px; font-size:13px;">
+                <a href="#" onclick="mostrarEtapaConta('esqueci'); return false;" style="color:var(--text-muted);">Esqueci minha senha</a>
+            </p>
+            <p style="text-align:center; margin-top:8px; font-size:13px;">
+                Não tem conta? <a href="#" onclick="mostrarEtapaConta('cadastrar'); return false;">Criar agora</a>
+            </p>
+            <p style="text-align:center; margin-top:4px; font-size:13px;">
+                <a href="#" onclick="mostrarEtapaConta('ativar'); return false;">Já sou cliente, quero criar uma senha</a>
+            </p>
+        </div>
+
+        <!-- CADASTRAR -->
+        <div id="conta-etapa-cadastrar" style="display:none;">
+            <h3>Criar Conta</h3>
+            <form onsubmit="handleCadastrarConta(event)">
+                <div class="form-group">
+                    <label>Nome *</label>
+                    <input type="text" id="conta-cad-nome" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>E-mail *</label>
+                    <input type="email" id="conta-cad-email" class="form-control" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label>Telefone/WhatsApp</label>
+                    <input type="text" id="conta-cad-telefone" class="form-control" placeholder="(00) 00000-0000">
+                </div>
+                <div class="form-group">
+                    <label>Senha * (mínimo 8 caracteres)</label>
+                    <input type="password" id="conta-cad-senha" class="form-control" required minlength="8" autocomplete="new-password">
+                </div>
+                <p id="conta-cad-erro" style="color:var(--danger-color); font-size:12px; margin-bottom:10px;"></p>
+                <button type="submit" class="btn" style="width:100%;">Criar Conta</button>
+                <button type="button" onclick="mostrarEtapaConta('entrar')" style="width:100%; margin-top:8px; background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer;">&larr; Voltar</button>
+            </form>
+        </div>
+
+        <!-- ATIVAR CONTA ANTIGA (cliente já existente, sem senha ainda) -->
+        <div id="conta-etapa-ativar" style="display:none;">
+            <h3>Já sou cliente — criar senha</h3>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Se você já comprou com a gente antes, confirme o e-mail ou telefone que usou, e crie uma senha pra acessar sua conta.</p>
+            <form onsubmit="handleAtivarConta(event)">
+                <div class="form-group">
+                    <label>E-mail ou Telefone cadastrado</label>
+                    <input type="text" id="conta-ativar-identificador" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Nova Senha * (mínimo 8 caracteres)</label>
+                    <input type="password" id="conta-ativar-senha" class="form-control" required minlength="8" autocomplete="new-password">
+                </div>
+                <p id="conta-ativar-erro" style="color:var(--danger-color); font-size:12px; margin-bottom:10px;"></p>
+                <button type="submit" class="btn" style="width:100%;">Criar Senha</button>
+                <button type="button" onclick="mostrarEtapaConta('entrar')" style="width:100%; margin-top:8px; background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer;">&larr; Voltar</button>
+            </form>
+        </div>
+
+        <!-- ESQUECI SENHA -->
+        <div id="conta-etapa-esqueci" style="display:none;">
+            <h3>Esqueci minha senha</h3>
+            <p style="color:var(--text-muted); font-size:13px; margin-bottom:15px;">Informe o e-mail da sua conta — se ele existir, você recebe um link pra criar uma senha nova.</p>
+            <form onsubmit="handleEsqueciSenhaConta(event)">
+                <div class="form-group">
+                    <label>E-mail cadastrado</label>
+                    <input type="email" id="conta-esq-email" class="form-control" required>
+                </div>
+                <p id="conta-esq-msg" style="font-size:12px; margin-bottom:10px;"></p>
+                <button type="submit" class="btn" style="width:100%;">Enviar Link</button>
+                <button type="button" onclick="mostrarEtapaConta('entrar')" style="width:100%; margin-top:8px; background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer;">&larr; Voltar</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/loja-produto.js"></script>
+</body>
+</html>

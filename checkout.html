@@ -1,12 +1,25 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pagamento | Essencial Barber</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CORREÇÃO: FontAwesome carregado sem bloquear a página — se esse CDN
+         estiver lento ou inacessível na rede, a loja continua funcionando
+         normalmente (só os ícones ficam ausentes até o CSS chegar, em vez
+         de travar a página inteira em "Carregando"). -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     <link rel="stylesheet" href="css/styles.css">
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <!-- CORREÇÃO: "defer" evita que esse script trave a leitura do HTML
+         inteiro se o CDN do Mercado Pago estiver lento — carrega em
+         paralelo, executa só depois do HTML pronto. Seguro aqui porque a
+         classe MercadoPago só é usada dentro de iniciarPagamentoCartao()
+         (js/checkout.js), chamada bem depois, quando o cliente escolhe
+         pagar no cartão — nunca durante o carregamento da página. -->
+    <script src="https://sdk.mercadopago.com/js/v2" defer></script>
 </head>
 <body>
 

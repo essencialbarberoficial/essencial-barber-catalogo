@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/produto.html", "destination": "/api/produto-preview" }
+  ]
+}

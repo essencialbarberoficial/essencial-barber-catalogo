@@ -38,6 +38,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// Quando a página é restaurada pelo gesto de voltar/avançar do navegador
+// (comum no celular, um leve arrastar de lado) em vez de carregada de
+// novo, o carrinho e o estado de login podem estar desatualizados — essa
+// função re-sincroniza os dois sem precisar recarregar a página inteira.
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return;
+  CART = JSON.parse(localStorage.getItem('cart') || '[]');
+  CONTA_CLIENTE = (() => {
+    const token = localStorage.getItem('contaClienteToken');
+    const infoRaw = localStorage.getItem('contaClienteInfo');
+    if (!token || !infoRaw) return null;
+    try { return { token, info: JSON.parse(infoRaw) }; } catch (e) { return null; }
+  })();
+  updateCartBadge();
+  updateLoginButton();
+});
+
 // ---------------------------------------------------------------------------
 // Utilitários
 // ---------------------------------------------------------------------------

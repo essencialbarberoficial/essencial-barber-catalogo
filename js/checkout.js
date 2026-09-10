@@ -1,6 +1,16 @@
 // ============================================================================
 // Essencial Barber - Checkout (Fase 8 Parte 2B + Fase 15 Parte 3 + Fase 25)
 // ============================================================================
+
+// Protege contra o gesto de arrastar (voltar/avançar) do navegador mobile
+// mostrando uma versão antiga da tela, guardada em memória (bfcache) —
+// crítico aqui, já que essa tela lida com pagamento. Se a página foi
+// restaurada da memória em vez de carregada de novo, força um recarregamento
+// de verdade, que busca o estado atual do pedido.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) window.location.reload();
+});
+
 let PEDIDO_ATUAL = null;
 let CHECKOUT_CONFIG = null;
 let ENTREGAS_DISPONIVEIS = null;
@@ -118,6 +128,9 @@ async function iniciarCheckoutComDadosDaConta(conta) {
 
     CLIENTE_ENCONTRADO_CHECKOUT = conta; // já usa o endereço salvo na Etapa Entrega
     PEDIDO_ATUAL = await fetch(`${API_BASE}/pedidos/${dados.pedidoId}/publico`).then((r) => r.json());
+    // Reflete o pedido na URL — cada checkout ganha um endereço próprio,
+    // sem precisar recarregar a página.
+    history.replaceState(null, '', `checkout.html?pedido=${PEDIDO_ATUAL.id}`);
     renderizarEtapaEntrega();
     return true;
   } catch (err) {
@@ -270,6 +283,9 @@ async function confirmarEtapaDadosCliente() {
     localStorage.setItem('checkoutDadosRecentes', JSON.stringify({ nome, email }));
 
     PEDIDO_ATUAL = await fetch(`${API_BASE}/pedidos/${dados.pedidoId}/publico`).then((r) => r.json());
+    // Reflete o pedido na URL — cada checkout ganha um endereço próprio,
+    // sem precisar recarregar a página.
+    history.replaceState(null, '', `checkout.html?pedido=${PEDIDO_ATUAL.id}`);
     renderizarEtapaEntrega();
   } catch (err) {
     console.error('Erro ao iniciar checkout', err);

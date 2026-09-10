@@ -1,6 +1,16 @@
 // ============================================================================
 // Essencial Barber - Confirmação do Pedido (Fase 8 Parte 2B)
 // ============================================================================
+
+// Protege contra o gesto de arrastar (voltar/avançar) do navegador mobile
+// mostrando uma versão antiga dessa tela, guardada em memória (bfcache) —
+// era exatamente isso que fazia "Pedido Confirmado" aparecer sem o
+// pagamento ter sido concluído de verdade. Força um recarregamento
+// de verdade, que busca o status atual do pedido na API.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) window.location.reload();
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   const pedidoId = getQueryParam('pedido');
   const container = document.getElementById('confirmacao-conteudo');
