@@ -230,7 +230,6 @@ async function addToCart(produtoId, opcoes = {}) {
       });
     }
     saveCart();
-    openCartModal();
   } catch (err) {
     console.error('Erro ao adicionar ao carrinho', err);
   }

@@ -54,6 +54,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    // Se o cliente já está com sessão ativa (já criou senha antes), não
+    // precisa preencher os dados de novo — busca o que já se sabe sobre
+    // ele e pula direto pra Entrega.
+    if (CONTA_CLIENTE) {
+      try {
+        const conta = await fetch(`${API_BASE}/loja/conta/me`, {
+          headers: { Authorization: `Bearer ${CONTA_CLIENTE.token}` }
+        }).then((r) => { if (!r.ok) throw new Error('sessão inválida'); return r.json(); });
+
+        if (conta.documento && conta.dataNascimento && conta.telefone) {
+          const iniciado = await iniciarCheckoutComDadosDaConta(conta);
+          if (iniciado) return;
+        }
+        // Se faltar algum dado essencial (ex: conta antiga sem CPF ainda),
+        // cai pra Etapa 0 normal, já com o que se sabe pré-preenchido.
+        renderizarEtapaDadosCliente(conta);
+        return;
+      } catch (err) {
+        console.error('Sessão de conta inválida, seguindo sem login', err);
+        // Sessão expirada/inválida — não trava o checkout por isso, só
+        // segue como se não estivesse logado.
+      }
+    }
+
     renderizarEtapaDadosCliente();
   } catch (err) {
     console.error('Erro ao carregar checkout', err);
@@ -61,32 +85,105 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+async function iniciarCheckoutComDadosDaConta(conta) {
+  const itens = ITENS_CHECKOUT.map((i) => ({
+    produtoId: i.id, variacaoId: i.variacaoId || null, nome: i.nome, quantidade: i.qty, precoUnitario: i.preco
+  }));
+
+  const cupomSalvo = JSON.parse(localStorage.getItem('cupomAplicadoCheckout') || 'null');
+  const vendedorSalvo = JSON.parse(localStorage.getItem('vendedorAplicadoCheckout') || 'null');
+
+  try {
+    const dados = await fetch(`${API_BASE}/loja/checkout/iniciar`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        documento: conta.documento, nome: conta.nome, dataNascimento: conta.dataNascimento,
+        telefone: conta.telefone, email: conta.email, itens,
+        cupomCodigo: cupomSalvo ? cupomSalvo.codigo : null,
+        vendedorId: vendedorSalvo ? vendedorSalvo.vendedorId : null,
+        valorDesconto: cupomSalvo ? cupomSalvo.desconto : 0
+      })
+    }).then((r) => r.json());
+
+    if (!dados.pedidoId) return false;
+
+    if (MODO_COMPRAR_AGORA) localStorage.removeItem('buyNowItem');
+    else { localStorage.removeItem('cart'); CART = []; }
+    localStorage.removeItem('cupomAplicadoCheckout');
+    localStorage.removeItem('vendedorAplicadoCheckout');
+
+    // Cliente logado já vai acompanhar pela conta — não precisa do
+    // convite de criar senha na confirmação de novo.
+    localStorage.removeItem('checkoutDadosRecentes');
+
+    CLIENTE_ENCONTRADO_CHECKOUT = conta; // já usa o endereço salvo na Etapa Entrega
+    PEDIDO_ATUAL = await fetch(`${API_BASE}/pedidos/${dados.pedidoId}/publico`).then((r) => r.json());
+    renderizarEtapaEntrega();
+    return true;
+  } catch (err) {
+    console.error('Erro ao iniciar checkout com dados da conta', err);
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // ETAPA 0 — Seus Dados: coletados ANTES de qualquer coisa (nome completo,
 // CPF, nascimento, WhatsApp, e-mail). A busca de cliente existente só
 // dispara depois que os 3 campos identificadores (CPF, telefone, e-mail)
-// estiverem preenchidos — não a cada campo isolado.
+// estiverem preenchidos — não a cada campo isolado. Se a pessoa já está
+// logada mas faltava algum dado (ex: conta antiga sem CPF), o que já se
+// sabe vem pré-preenchido.
 // ---------------------------------------------------------------------------
-function renderizarEtapaDadosCliente() {
+function renderizarEtapaDadosCliente(dadosConhecidos) {
+  const d = dadosConhecidos || {};
   const container = document.getElementById('checkout-conteudo');
   container.innerHTML = `
     <div class="section-title" style="margin-top:20px;"><h2>Seus Dados</h2></div>
     <div class="card-panel" style="margin-bottom:18px;">
-      <div class="form-group"><label>Nome Completo *</label><input type="text" id="dc-nome" class="form-control" required></div>
+      <div class="form-group"><label>Nome Completo *</label><input type="text" id="dc-nome" class="form-control" value="${escapeHtml(d.nome || '')}" required></div>
       <div style="display:flex; gap:10px;">
-        <div class="form-group" style="flex:1;"><label>CPF *</label><input type="text" id="dc-cpf" class="form-control" placeholder="000.000.000-00" required></div>
-        <div class="form-group" style="flex:1;"><label>Data de Nascimento *</label><input type="date" id="dc-nascimento" class="form-control" required></div>
+        <div class="form-group" style="flex:1;"><label>CPF *</label><input type="text" id="dc-cpf" class="form-control" placeholder="000.000.000-00" value="${escapeHtml(d.documento || '')}" required></div>
+        <div class="form-group" style="flex:1;"><label>Data de Nascimento *</label><input type="text" id="dc-nascimento" class="form-control campo-data-nascimento" placeholder="DD/MM/AAAA" inputmode="numeric" maxlength="10" value="${d.dataNascimento ? formatarDataParaExibicao(d.dataNascimento) : ''}" required></div>
       </div>
-      <div class="form-group"><label>WhatsApp *</label><input type="text" id="dc-telefone" class="form-control" placeholder="(00) 00000-0000" required></div>
-      <div class="form-group"><label>E-mail *</label><input type="email" id="dc-email" class="form-control" required></div>
+      <div class="form-group"><label>WhatsApp *</label><input type="text" id="dc-telefone" class="form-control" placeholder="(00) 00000-0000" value="${escapeHtml(d.telefone || '')}" required></div>
+      <div class="form-group"><label>E-mail *</label><input type="email" id="dc-email" class="form-control" value="${escapeHtml(d.email || '')}" required></div>
       <p id="dc-encontrado-msg" style="font-size:13px; color:var(--success-color, #16a34a); display:none; margin-top:6px;"><i class="fa-solid fa-circle-check"></i> Encontramos seu cadastro! Seu endereço salvo vai aparecer na próxima etapa (você pode editar lá).</p>
     </div>
     <div id="erro-dados-cliente" style="color:var(--danger-color, #dc2626); font-size:13px; margin-bottom:10px;"></div>
     <button class="btn" style="width:100%;" onclick="confirmarEtapaDadosCliente()">Continuar</button>
   `;
 
+  aplicarMascaraDataNascimento();
+
   ['dc-cpf', 'dc-telefone', 'dc-email'].forEach((id) => {
     document.getElementById(id).addEventListener('blur', tentarBuscarClienteCheckout);
+  });
+}
+
+// Converte "1990-05-20" (formato do banco) pra "20/05/1990" (formato exibido no campo)
+function formatarDataParaExibicao(dataISO) {
+  const partes = (dataISO || '').split('-');
+  if (partes.length !== 3) return '';
+  return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
+
+// Converte "20/05/1990" (formato digitado) pra "1990-05-20" (formato do banco)
+function converterDataParaISO(dataBR) {
+  const partes = (dataBR || '').split('/');
+  if (partes.length !== 3 || partes[2].length !== 4) return '';
+  return `${partes[2]}-${partes[1]}-${partes[0]}`;
+}
+
+// Máscara simples de data enquanto digita (DD/MM/AAAA) — mais previsível
+// e consistente entre navegadores do que o seletor nativo de calendário.
+function aplicarMascaraDataNascimento() {
+  const campo = document.querySelector('.campo-data-nascimento');
+  if (!campo) return;
+  campo.addEventListener('input', () => {
+    let digitos = campo.value.replace(/\D/g, '').slice(0, 8);
+    if (digitos.length >= 5) digitos = `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+    else if (digitos.length >= 3) digitos = `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+    campo.value = digitos;
   });
 }
 
@@ -122,12 +219,17 @@ async function confirmarEtapaDadosCliente() {
 
   const nome = document.getElementById('dc-nome').value.trim();
   const cpf = document.getElementById('dc-cpf').value.trim();
-  const nascimento = document.getElementById('dc-nascimento').value;
+  const nascimentoDigitado = document.getElementById('dc-nascimento').value.trim();
+  const nascimento = converterDataParaISO(nascimentoDigitado);
   const telefone = document.getElementById('dc-telefone').value.trim();
   const email = document.getElementById('dc-email').value.trim();
 
-  if (!nome || !cpf || !nascimento || !telefone || !email) {
+  if (!nome || !cpf || !nascimentoDigitado || !telefone || !email) {
     erroEl.textContent = 'Preencha todos os campos pra continuar.';
+    return;
+  }
+  if (!nascimento) {
+    erroEl.textContent = 'Data de nascimento inválida. Use o formato DD/MM/AAAA.';
     return;
   }
   if (!validarCPF(cpf)) {
@@ -539,6 +641,15 @@ function selecionarFormaPagamento(forma) {
 
   document.getElementById('painel-pix').style.display = forma === 'pix' ? 'block' : 'none';
   document.getElementById('painel-cartao').style.display = forma === 'cartao' ? 'block' : 'none';
+
+  // Ao sair do Pix, para de verificar o status dele em segundo plano —
+  // sem isso, o polling continuava rodando escondido mesmo depois do
+  // cliente trocar pra Cartão, podendo redirecionar sozinho pra
+  // confirmação se aquele Pix (o anterior) fosse pago depois.
+  if (forma !== 'pix' && INTERVALO_POLLING_PIX) {
+    clearInterval(INTERVALO_POLLING_PIX);
+    INTERVALO_POLLING_PIX = null;
+  }
 
   if (forma === 'pix') iniciarPagamentoPix();
   if (forma === 'cartao') iniciarPagamentoCartao();

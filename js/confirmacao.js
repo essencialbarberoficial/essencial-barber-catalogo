@@ -75,7 +75,6 @@ function renderizarConfirmacao(pedido, status, msg) {
     <p style="font-size:13px; color:var(--text-muted); margin-bottom:26px;">${escapeHtml(rodape)}</p>
 
     <div style="display:flex; flex-direction:column; gap:10px;">
-      <a href="pedido.html?id=${pedido.id}" class="btn">${escapeHtml(msg.checkout_texto_botao_acompanhar || 'Acompanhar meu Pedido')}</a>
       <button class="btn-secondary btn btn-whatsapp-loja" onclick="falarNoWhatsApp(${pedido.id})">
         <i class="fa-brands fa-whatsapp"></i> ${escapeHtml(msg.checkout_texto_botao_whatsapp || 'Falar no WhatsApp')}
       </button>
