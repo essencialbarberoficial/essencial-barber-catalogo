@@ -52,7 +52,15 @@ header { background: #fff; border-bottom: 1px solid var(--border-color); positio
 .hero-slide .eyebrow { color: var(--primary); font-weight: 700; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
 .hero-slide h1 { font-size: 32px; line-height: 1.15; margin-bottom: 12px; }
 .hero-slide p { font-size: 14px; color: #c8ccd4; margin-bottom: 18px; }
-.hero-dots { position: absolute; bottom: 16px; left: 40px; display: flex; gap: 6px; }
+
+/* Banner configurado com imagem própria (Configurações do Catálogo) —
+   preenche o espaço inteiro, sem padding nem texto por cima. */
+.hero-slide-imagem { display: none; width: 100%; padding: 0; max-width: none; }
+.hero-slide-imagem.active { display: block; }
+.hero-slide-imagem img { width: 100%; aspect-ratio: 1580 / 450; object-fit: cover; display: block; }
+.hero-slide-imagem.tem-link { cursor: pointer; }
+
+.hero-dots { position: absolute; bottom: 16px; left: 40px; display: flex; gap: 6px; z-index: 2; }
 .hero-dots span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.3); cursor: pointer; }
 .hero-dots span.active { background: var(--primary); }
 
@@ -72,7 +80,30 @@ header { background: #fff; border-bottom: 1px solid var(--border-color); positio
 .product-card { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; transition: box-shadow .2s; position: relative; }
 .product-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
 .product-card a.card-link { text-decoration: none; color: inherit; display: flex; flex-direction: column; flex: 1; }
-.product-card img { width: 100%; height: 180px; object-fit: cover; background: #f5f5f5; }
+.product-card-imagem-wrap { position: relative; }
+.product-card img { width: 100%; aspect-ratio: 1/1; object-fit: contain; background: #f5f5f5; display: block; }
+
+/* Botão de ícone (só o carrinho, sem texto) — adiciona ao carrinho sem
+   sair da página. Base compartilhada entre o card de produto (flutuante
+   sobre a foto) e a Ficha de Produto (ao lado do "Comprar"). */
+.btn-icone-carrinho {
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; min-width: 44px; padding: 0;
+  border-radius: 50%; border: none; cursor: pointer;
+  background: var(--charcoal); color: #fff; font-size: 15px;
+  transition: background .15s, transform .1s;
+}
+.btn-icone-carrinho:hover { background: var(--primary); }
+.btn-icone-carrinho:active { transform: scale(0.94); }
+
+/* Variante flutuante — canto inferior direito da foto, no card de produto */
+.product-card-imagem-wrap .btn-icone-carrinho {
+  position: absolute; right: 10px; bottom: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+}
+
+/* Variante da Ficha de Produto — ao lado do botão "Comprar", não flutuante */
+.btn-icone-carrinho-produto { width: 48px; height: 48px; min-width: 48px; border-radius: 8px; font-size: 17px; }
 .product-card .info { padding: 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .product-card .name { font-size: 14px; font-weight: 600; min-height: 36px; color: var(--charcoal); }
 .product-card .price-old { font-size: 12px; color: var(--text-muted); text-decoration: line-through; }
@@ -110,7 +141,7 @@ header { background: #fff; border-bottom: 1px solid var(--border-color); positio
 }
 .galeria-scroll::-webkit-scrollbar { display: none; }
 .galeria-imagem {
-  flex: 0 0 100%; width: 100%; aspect-ratio: 1/1; object-fit: cover;
+  flex: 0 0 100%; width: 100%; aspect-ratio: 1/1; object-fit: contain; background: #f5f5f5;
   scroll-snap-align: start; border: 1px solid var(--border-color);
 }
 .galeria-seta {
@@ -130,6 +161,19 @@ header { background: #fff; border-bottom: 1px solid var(--border-color); positio
   .galeria-seta { display: flex; }
 }
 .produto-info h1 { font-size: 24px; margin-bottom: 6px; text-transform: none; }
+
+/* Compartilhar — mesmo estilo do print de referência: circular, contorno
+   fino, só o ícone, alinhado ao lado do título. */
+.produto-titulo-linha { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.produto-titulo-linha h1 { flex: 1; margin-bottom: 0; }
+.btn-icone-contorno {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; min-width: 40px; flex-shrink: 0; padding: 0;
+  border-radius: 50%; border: 1px solid var(--border-color); background: #fff;
+  color: var(--charcoal); font-size: 15px; cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.btn-icone-contorno:hover { border-color: var(--primary); color: var(--primary); }
 .produto-sku { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
 .produto-preco-old { font-size: 15px; color: var(--text-muted); text-decoration: line-through; }
 .produto-preco { font-size: 32px; font-weight: 700; color: var(--primary); margin: 4px 0; }
@@ -302,6 +346,7 @@ footer { background: var(--charcoal); color: #c8ccd4; margin-top: 50px; }
   .hero-slide h1 { font-size: 1.35rem; line-height: 1.25; }
   .hero-slide p { font-size: 0.85rem; }
   .hero-slide .btn { width: 100%; text-align: center; min-height: 44px; }
+  .hero-slide-imagem img { aspect-ratio: 820 / 1000; }
 
   /* ---------- Títulos de seção ---------- */
   .section-title { margin: 26px 0 14px; }
@@ -324,7 +369,6 @@ footer { background: var(--charcoal); color: #c8ccd4; margin-top: 50px; }
   /* ---------- Grade de produtos — 2 colunas, cards arredondados ---------- */
   .product-grid { grid-template-columns: repeat(2, 1fr); gap: 3vw; }
   .product-card { border-radius: 16px; border-width: 1px; }
-  .product-card img { height: 38vw; max-height: 170px; }
   .product-card .info { padding: 10px; gap: 4px; }
   .product-card .name { font-size: 0.8rem; min-height: 34px; }
   .product-card .price { font-size: 1rem; }

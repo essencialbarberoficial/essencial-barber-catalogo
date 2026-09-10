@@ -1,5 +1,5 @@
 // ============================================================================
-// Essencial Barber - Checkout (Fase 8 Parte 2B + Fase 15 Parte 3)
+// Essencial Barber - Checkout (Fase 8 Parte 2B + Fase 15 Parte 3 + Fase 25)
 // ============================================================================
 let PEDIDO_ATUAL = null;
 let CHECKOUT_CONFIG = null;
@@ -9,33 +9,171 @@ let ENTREGA_ESCOLHIDA = null; // { tipoRecebimento, entregaId, valorFrete, nome 
 let INTERVALO_POLLING_PIX = null;
 let MP_INSTANCE = null;
 
+// Fase 25 — Checkout Completo: nenhum pedido existe ainda quando a pessoa
+// chega aqui vinda do carrinho ou do "Comprar" — só depois que ela
+// preenche os dados completos (Etapa 0) é que o pedido é criado de
+// verdade. Nunca pede login/senha nesse caminho.
+let ITENS_CHECKOUT = null;
+let MODO_COMPRAR_AGORA = false;
+let CLIENTE_ENCONTRADO_CHECKOUT = null;
+let BUSCA_CLIENTE_JA_DISPAROU = false;
+
 document.addEventListener('DOMContentLoaded', async () => {
   const pedidoId = getQueryParam('pedido');
   const container = document.getElementById('checkout-conteudo');
 
-  if (!pedidoId) {
-    container.innerHTML = '<div class="empty-msg">Pedido não informado.</div>';
-    return;
-  }
-
   try {
-    [PEDIDO_ATUAL, CHECKOUT_CONFIG, ENTREGAS_DISPONIVEIS] = await Promise.all([
-      fetch(`${API_BASE}/pedidos/${pedidoId}/publico`).then((r) => { if (!r.ok) throw new Error('não encontrado'); return r.json(); }),
+    [CHECKOUT_CONFIG, ENTREGAS_DISPONIVEIS] = await Promise.all([
       fetch(`${API_BASE}/checkout/config`).then((r) => r.json()),
       fetch(`${API_BASE}/entregas/disponiveis`).then((r) => r.json())
     ]);
 
-    if (PEDIDO_ATUAL.pago) {
-      window.location.href = `confirmacao.html?pedido=${pedidoId}`;
+    if (pedidoId) {
+      // Voltando pra um pedido que já existe (ex: link de pagamento
+      // pendente reaberto) — pula direto pra Entrega, como já era.
+      PEDIDO_ATUAL = await fetch(`${API_BASE}/pedidos/${pedidoId}/publico`).then((r) => { if (!r.ok) throw new Error('não encontrado'); return r.json(); });
+      if (PEDIDO_ATUAL.pago) {
+        window.location.href = `confirmacao.html?pedido=${pedidoId}`;
+        return;
+      }
+      renderizarEtapaEntrega();
       return;
     }
 
-    renderizarEtapaEntrega();
+    // Fluxo normal: vindo do carrinho ou do "Comprar" — ainda sem pedido.
+    const compraAvulsaSalva = localStorage.getItem('buyNowItem');
+    if (compraAvulsaSalva) {
+      MODO_COMPRAR_AGORA = true;
+      ITENS_CHECKOUT = [JSON.parse(compraAvulsaSalva)];
+    } else {
+      ITENS_CHECKOUT = JSON.parse(localStorage.getItem('cart') || '[]');
+    }
+
+    if (!ITENS_CHECKOUT || ITENS_CHECKOUT.length === 0) {
+      container.innerHTML = '<div class="empty-msg">Seu carrinho está vazio.</div>';
+      return;
+    }
+
+    renderizarEtapaDadosCliente();
   } catch (err) {
     console.error('Erro ao carregar checkout', err);
-    container.innerHTML = '<div class="empty-msg">Não foi possível carregar seu pedido.</div>';
+    container.innerHTML = '<div class="empty-msg">Não foi possível carregar o checkout.</div>';
   }
 });
+
+// ---------------------------------------------------------------------------
+// ETAPA 0 — Seus Dados: coletados ANTES de qualquer coisa (nome completo,
+// CPF, nascimento, WhatsApp, e-mail). A busca de cliente existente só
+// dispara depois que os 3 campos identificadores (CPF, telefone, e-mail)
+// estiverem preenchidos — não a cada campo isolado.
+// ---------------------------------------------------------------------------
+function renderizarEtapaDadosCliente() {
+  const container = document.getElementById('checkout-conteudo');
+  container.innerHTML = `
+    <div class="section-title" style="margin-top:20px;"><h2>Seus Dados</h2></div>
+    <div class="card-panel" style="margin-bottom:18px;">
+      <div class="form-group"><label>Nome Completo *</label><input type="text" id="dc-nome" class="form-control" required></div>
+      <div style="display:flex; gap:10px;">
+        <div class="form-group" style="flex:1;"><label>CPF *</label><input type="text" id="dc-cpf" class="form-control" placeholder="000.000.000-00" required></div>
+        <div class="form-group" style="flex:1;"><label>Data de Nascimento *</label><input type="date" id="dc-nascimento" class="form-control" required></div>
+      </div>
+      <div class="form-group"><label>WhatsApp *</label><input type="text" id="dc-telefone" class="form-control" placeholder="(00) 00000-0000" required></div>
+      <div class="form-group"><label>E-mail *</label><input type="email" id="dc-email" class="form-control" required></div>
+      <p id="dc-encontrado-msg" style="font-size:13px; color:var(--success-color, #16a34a); display:none; margin-top:6px;"><i class="fa-solid fa-circle-check"></i> Encontramos seu cadastro! Seu endereço salvo vai aparecer na próxima etapa (você pode editar lá).</p>
+    </div>
+    <div id="erro-dados-cliente" style="color:var(--danger-color, #dc2626); font-size:13px; margin-bottom:10px;"></div>
+    <button class="btn" style="width:100%;" onclick="confirmarEtapaDadosCliente()">Continuar</button>
+  `;
+
+  ['dc-cpf', 'dc-telefone', 'dc-email'].forEach((id) => {
+    document.getElementById(id).addEventListener('blur', tentarBuscarClienteCheckout);
+  });
+}
+
+async function tentarBuscarClienteCheckout() {
+  if (BUSCA_CLIENTE_JA_DISPAROU) return;
+
+  const cpf = document.getElementById('dc-cpf').value.trim();
+  const telefone = document.getElementById('dc-telefone').value.trim();
+  const email = document.getElementById('dc-email').value.trim();
+  if (!cpf || !telefone || !email) return; // só busca depois que os 3 estiverem preenchidos
+
+  try {
+    const dados = await fetch(`${API_BASE}/loja/checkout/buscar-cliente`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documento: cpf, telefone, email })
+    }).then((r) => r.json());
+
+    if (dados.encontrado) {
+      BUSCA_CLIENTE_JA_DISPAROU = true;
+      CLIENTE_ENCONTRADO_CHECKOUT = dados;
+      document.getElementById('dc-nome').value = dados.nome;
+      document.getElementById('dc-encontrado-msg').style.display = 'block';
+    }
+  } catch (err) {
+    console.error('Erro ao buscar cliente existente', err);
+    // Não bloqueia o checkout se a busca falhar — só não pré-preenche nada.
+  }
+}
+
+async function confirmarEtapaDadosCliente() {
+  const erroEl = document.getElementById('erro-dados-cliente');
+  erroEl.textContent = '';
+
+  const nome = document.getElementById('dc-nome').value.trim();
+  const cpf = document.getElementById('dc-cpf').value.trim();
+  const nascimento = document.getElementById('dc-nascimento').value;
+  const telefone = document.getElementById('dc-telefone').value.trim();
+  const email = document.getElementById('dc-email').value.trim();
+
+  if (!nome || !cpf || !nascimento || !telefone || !email) {
+    erroEl.textContent = 'Preencha todos os campos pra continuar.';
+    return;
+  }
+  if (!validarCPF(cpf)) {
+    erroEl.textContent = 'CPF inválido. Confira os números digitados.';
+    return;
+  }
+
+  const itens = ITENS_CHECKOUT.map((i) => ({
+    produtoId: i.id, variacaoId: i.variacaoId || null, nome: i.nome, quantidade: i.qty, precoUnitario: i.preco
+  }));
+
+  const cupomSalvo = JSON.parse(localStorage.getItem('cupomAplicadoCheckout') || 'null');
+  const vendedorSalvo = JSON.parse(localStorage.getItem('vendedorAplicadoCheckout') || 'null');
+
+  try {
+    const dados = await fetch(`${API_BASE}/loja/checkout/iniciar`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        documento: cpf, nome, dataNascimento: nascimento, telefone, email, itens,
+        cupomCodigo: cupomSalvo ? cupomSalvo.codigo : null,
+        vendedorId: vendedorSalvo ? vendedorSalvo.vendedorId : null,
+        valorDesconto: cupomSalvo ? cupomSalvo.desconto : 0
+      })
+    }).then((r) => r.json());
+
+    if (!dados.pedidoId) { erroEl.textContent = dados.error || 'Não foi possível iniciar o checkout.'; return; }
+
+    // O carrinho (ou a compra avulsa) já virou pedido — limpa, pra não
+    // duplicar se a pessoa voltar pro catálogo depois.
+    if (MODO_COMPRAR_AGORA) localStorage.removeItem('buyNowItem');
+    else { localStorage.removeItem('cart'); CART = []; }
+    localStorage.removeItem('cupomAplicadoCheckout');
+    localStorage.removeItem('vendedorAplicadoCheckout');
+
+    // O e-mail/nome já foram digitados agora mesmo — guarda temporariamente
+    // pra tela de confirmação oferecer a criação de senha sem precisar
+    // buscar isso de novo (e sem expor esse dado numa rota pública).
+    localStorage.setItem('checkoutDadosRecentes', JSON.stringify({ nome, email }));
+
+    PEDIDO_ATUAL = await fetch(`${API_BASE}/pedidos/${dados.pedidoId}/publico`).then((r) => r.json());
+    renderizarEtapaEntrega();
+  } catch (err) {
+    console.error('Erro ao iniciar checkout', err);
+    erroEl.textContent = 'Erro ao conectar. Tente novamente.';
+  }
+}
 
 // ---------------------------------------------------------------------------
 // ETAPA — Entrega: CEP automático, Entrega x Retirada na Loja, frete real
@@ -66,18 +204,18 @@ function renderizarEtapaEntrega() {
 
       <div id="bloco-entrega">
         <div style="display:flex; gap:8px; margin-bottom:10px;">
-          <input type="text" id="ent-cep" class="form-control" placeholder="CEP" value="${escapeHtml(enderecoSalvo.cep || usuario.cep || '')}" style="max-width:160px;">
+          <input type="text" id="ent-cep" class="form-control" placeholder="CEP" value="${escapeHtml(enderecoSalvo.cep || (CLIENTE_ENCONTRADO_CHECKOUT && CLIENTE_ENCONTRADO_CHECKOUT.cep) || usuario.cep || '')}" style="max-width:160px;">
           <button class="btn-secondary btn" onclick="buscarCep()">Buscar CEP</button>
         </div>
-        <div class="form-group"><label>Rua</label><input type="text" id="ent-rua" class="form-control" value="${escapeHtml(enderecoSalvo.rua || '')}"></div>
+        <div class="form-group"><label>Rua</label><input type="text" id="ent-rua" class="form-control" value="${escapeHtml(enderecoSalvo.rua || (CLIENTE_ENCONTRADO_CHECKOUT && CLIENTE_ENCONTRADO_CHECKOUT.rua) || '')}"></div>
         <div style="display:flex; gap:10px;">
-          <div class="form-group" style="flex:1;"><label>Número</label><input type="text" id="ent-numero" class="form-control" value="${escapeHtml(enderecoSalvo.numero || '')}"></div>
-          <div class="form-group" style="flex:2;"><label>Complemento</label><input type="text" id="ent-complemento" class="form-control" value="${escapeHtml(enderecoSalvo.complemento || '')}"></div>
+          <div class="form-group" style="flex:1;"><label>Número</label><input type="text" id="ent-numero" class="form-control" value="${escapeHtml(enderecoSalvo.numero || (CLIENTE_ENCONTRADO_CHECKOUT && CLIENTE_ENCONTRADO_CHECKOUT.numero) || '')}"></div>
+          <div class="form-group" style="flex:2;"><label>Complemento</label><input type="text" id="ent-complemento" class="form-control" value="${escapeHtml(enderecoSalvo.complemento || (CLIENTE_ENCONTRADO_CHECKOUT && CLIENTE_ENCONTRADO_CHECKOUT.complemento) || '')}"></div>
         </div>
-        <div class="form-group"><label>Bairro</label><input type="text" id="ent-bairro" class="form-control" value="${escapeHtml(enderecoSalvo.bairro || usuario.bairro || '')}"></div>
+        <div class="form-group"><label>Bairro</label><input type="text" id="ent-bairro" class="form-control" value="${escapeHtml(enderecoSalvo.bairro || (CLIENTE_ENCONTRADO_CHECKOUT && CLIENTE_ENCONTRADO_CHECKOUT.bairro) || usuario.bairro || '')}"></div>
         <div style="display:flex; gap:10px;">
-          <div class="form-group" style="flex:2;"><label>Cidade</label><input type="text" id="ent-cidade" class="form-control" value="${escapeHtml(enderecoSalvo.cidade || '')}"></div>
-          <div class="form-group" style="flex:1;"><label>Estado</label><input type="text" id="ent-estado" class="form-control" maxlength="2" value="${escapeHtml(enderecoSalvo.estado || '')}"></div>
+          <div class="form-group" style="flex:2;"><label>Cidade</label><input type="text" id="ent-cidade" class="form-control" value="${escapeHtml(enderecoSalvo.cidade || (CLIENTE_ENCONTRADO_CHECKOUT && CLIENTE_ENCONTRADO_CHECKOUT.cidade) || '')}"></div>
+          <div class="form-group" style="flex:1;"><label>Estado</label><input type="text" id="ent-estado" class="form-control" maxlength="2" value="${escapeHtml(enderecoSalvo.estado || (CLIENTE_ENCONTRADO_CHECKOUT && CLIENTE_ENCONTRADO_CHECKOUT.estado) || '')}"></div>
         </div>
 
         <button class="btn-secondary btn" style="width:100%; margin:10px 0;" onclick="calcularFreteCheckout()">Calcular Opções de Frete</button>
@@ -92,8 +230,9 @@ function renderizarEtapaEntrega() {
   `;
 
   selecionarTipoRecebimento(tipoJaEscolhido);
-  // Se já tinha frete calculado e escolhido antes, recalcula pra mostrar as opções de novo
-  if (tipoJaEscolhido === 'entrega' && enderecoSalvo.cep) {
+  // Se já tinha frete calculado antes, ou se achamos um endereço salvo do
+  // cliente na Etapa 0, recalcula pra já mostrar as opções de frete.
+  if (tipoJaEscolhido === 'entrega' && (enderecoSalvo.cep || (CLIENTE_ENCONTRADO_CHECKOUT && CLIENTE_ENCONTRADO_CHECKOUT.cep))) {
     calcularFreteCheckout();
   }
 }

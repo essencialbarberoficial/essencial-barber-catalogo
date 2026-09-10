@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir Senha | Essencial Barber</title>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+    <div class="header-container">
+        <div class="top-bar">
+            <a href="index.html" class="store-name">Essencial <span>Barber</span></a>
+        </div>
+    </div>
+</header>
+
+<main class="container" style="max-width:420px;">
+    <div class="section-title"><h2>Criar Nova Senha</h2></div>
+
+    <div id="redefinir-conteudo" class="card-panel">
+        <form onsubmit="handleRedefinirSenhaPagina(event)">
+            <div class="form-group">
+                <label>Nova Senha * (mínimo 8 caracteres)</label>
+                <input type="password" id="redefinir-senha-nova" class="form-control" required minlength="8" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+                <label>Confirmar Nova Senha *</label>
+                <input type="password" id="redefinir-senha-confirmar" class="form-control" required minlength="8" autocomplete="new-password">
+            </div>
+            <p id="redefinir-erro" style="color:var(--danger-color); font-size:12px; margin-bottom:10px;"></p>
+            <button type="submit" class="btn" style="width:100%;">Salvar Nova Senha</button>
+        </form>
+    </div>
+</main>
+
+<footer>
+    <div class="footer-bottom">Essencial Barber</div>
+</footer>
+
+<script src="js/config.js"></script>
+<script>
+  async function handleRedefinirSenhaPagina(event) {
+    event.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const novaSenha = document.getElementById('redefinir-senha-nova').value;
+    const confirmar = document.getElementById('redefinir-senha-confirmar').value;
+    const erroEl = document.getElementById('redefinir-erro');
+    erroEl.textContent = '';
+
+    if (!token) { erroEl.textContent = 'Link inválido — falta o código de redefinição.'; return; }
+    if (novaSenha !== confirmar) { erroEl.textContent = 'As senhas não coincidem.'; return; }
+
+    try {
+      const res = await fetch(`${API_BASE}/loja/conta/redefinir-senha`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, novaSenha })
+      });
+      const dados = await res.json();
+      if (!res.ok) { erroEl.textContent = dados.error || 'Não foi possível redefinir a senha.'; return; }
+
+      document.getElementById('redefinir-conteudo').innerHTML = `
+        <div style="text-align:center; padding:20px 0;">
+          <div style="font-size:40px; margin-bottom:10px;">✅</div>
+          <h3 style="margin-bottom:10px;">Senha redefinida com sucesso!</h3>
+          <a href="index.html" class="btn" style="display:inline-block; margin-top:10px;">Voltar pra Loja</a>
+        </div>
+      `;
+    } catch (err) {
+      console.error('Erro ao redefinir senha', err);
+      erroEl.textContent = 'Erro ao conectar. Tente novamente.';
+    }
+  }
+</script>
+</body>
+</html>

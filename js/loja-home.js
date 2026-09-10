@@ -42,12 +42,53 @@ async function aplicarOrdemSecoesHome() {
 }
 
 // ---------------------------------------------------------------------------
-// Carrossel do banner principal
+// Carrossel do banner principal — se houver banners configurados em
+// Configurações do Catálogo → Geral, troca os slides de texto padrão
+// pelas imagens configuradas (desktop/mobile, via <picture>). Sem nenhum
+// banner configurado ainda, mantém o texto padrão que já vinha no HTML.
 // ---------------------------------------------------------------------------
-function initCarrossel() {
-  const slides = document.querySelectorAll('.hero-slide');
+async function initCarrossel() {
+  await aplicarBannersConfigurados();
+  montarRotacaoCarrossel();
+}
+
+async function aplicarBannersConfigurados() {
+  try {
+    const config = await fetch(`${API_BASE}/config`).then((r) => r.json());
+    if (!config.catalogoBanners) return; // sem nada configurado — seção continua escondida
+
+    const banners = JSON.parse(config.catalogoBanners);
+    if (!Array.isArray(banners) || banners.length === 0) return; // idem
+
+    const heroBanner = document.getElementById('hero-banner');
+    if (!heroBanner) return;
+
+    heroBanner.innerHTML = banners.map((banner, i) => `
+      <div class="hero-slide-imagem ${i === 0 ? 'active' : ''} ${banner.link ? 'tem-link' : ''}" ${banner.link ? `data-link="${escapeHtml(banner.link)}"` : ''}>
+        <picture>
+          ${banner.mobileBase64 ? `<source media="(max-width: 767px)" srcset="${banner.mobileBase64}">` : ''}
+          <img src="${banner.desktopBase64 || banner.mobileBase64}" alt="Banner promocional">
+        </picture>
+      </div>
+    `).join('') + '<div class="hero-dots" id="hero-dots"></div>';
+
+    heroBanner.querySelectorAll('.hero-slide-imagem[data-link]').forEach((el) => {
+      el.addEventListener('click', () => { window.location.href = el.dataset.link; });
+    });
+
+    // Só agora que tem conteúdo de verdade, a seção aparece — antes disso
+    // fica escondida (display:none já vem assim no HTML), sem deixar
+    // espaço vazio nem texto de reserva.
+    heroBanner.style.display = '';
+  } catch (err) {
+    console.error('Erro ao carregar banners configurados — seção do banner fica escondida', err);
+  }
+}
+
+function montarRotacaoCarrossel() {
+  const slides = document.querySelectorAll('.hero-slide, .hero-slide-imagem');
   const dotsContainer = document.getElementById('hero-dots');
-  if (slides.length === 0) return;
+  if (slides.length === 0 || !dotsContainer) return;
 
   dotsContainer.innerHTML = Array.from(slides).map((_, i) => `<span data-i="${i}" class="${i === 0 ? 'active' : ''}"></span>`).join('');
   const dots = dotsContainer.querySelectorAll('span');
@@ -60,7 +101,7 @@ function initCarrossel() {
   }
   dots.forEach((d) => d.addEventListener('click', () => mostrar(Number(d.dataset.i))));
 
-  setInterval(() => mostrar((atual + 1) % slides.length), 6000);
+  if (slides.length > 1) setInterval(() => mostrar((atual + 1) % slides.length), 6000);
 }
 
 
@@ -69,20 +110,19 @@ function initCarrossel() {
 // ---------------------------------------------------------------------------
 async function carregarSecoesProdutos() {
   try {
-    const produtos = await fetch(`${API_BASE}/produtos`).then((r) => r.json());
-    const ativos = produtos.filter((p) => p.status !== 'inativo');
+    // Fase 23 — cada seção agora vem pronta da Vitrine do Catálogo: a
+    // curadoria manual feita no painel primeiro, completada pela regra
+    // automática (preço promocional pra Ofertas, mais recentes pra
+    // Lançamentos) se sobrar espaço — tudo já resolvido no servidor.
+    const [destaque, ofertas, lancamentos] = await Promise.all([
+      fetch(`${API_BASE}/vitrines/destaque/publica?limite=8`).then((r) => r.json()),
+      fetch(`${API_BASE}/vitrines/ofertas/publica?limite=8`).then((r) => r.json()),
+      fetch(`${API_BASE}/vitrines/lancamentos/publica?limite=8`).then((r) => r.json())
+    ]);
 
-    // Usa os produtos marcados como "Destaque" no painel. Se ainda nenhum
-    // foi marcado (loja recém-configurada), cai de volta pros primeiros
-    // produtos cadastrados, pra seção nunca ficar vazia sem necessidade.
-    const destacados = ativos.filter((p) => p.destaque);
-    renderGrid('grid-destaques', destacados.length ? destacados.slice(0, 8) : ativos.slice(0, 8));
-
-    const ofertas = ativos.filter((p) => p.precoPromocional && p.precoPromocional > 0);
-    renderGrid('grid-ofertas', ofertas.length ? ofertas.slice(0, 8) : ativos.slice(0, 4), 'Nenhuma oferta no momento.');
-
-    const lancamentos = [...ativos].sort((a, b) => new Date(b.criadoEm || 0) - new Date(a.criadoEm || 0));
-    renderGrid('grid-lancamentos', lancamentos.slice(0, 8));
+    renderGrid('grid-destaques', destaque.produtos);
+    renderGrid('grid-ofertas', ofertas.produtos, 'Nenhuma oferta no momento.');
+    renderGrid('grid-lancamentos', lancamentos.produtos);
   } catch (err) {
     console.error('Erro ao carregar produtos da home', err);
     ['grid-destaques', 'grid-ofertas', 'grid-lancamentos'].forEach((id) => {

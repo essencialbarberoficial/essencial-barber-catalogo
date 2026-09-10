@@ -61,6 +61,8 @@ function renderizarConfirmacao(pedido, status, msg) {
     <h1 style="font-size:22px; margin-bottom:10px; color:${cor};">${escapeHtml(titulo)}</h1>
     <p style="color:var(--text-muted); margin-bottom:20px;">${escapeHtml(corpo)}</p>
 
+    ${status.pago ? '<div id="criar-senha-pos-compra"></div>' : ''}
+
     <div class="card-panel" style="text-align:left; margin-bottom:22px;">
       <div style="display:flex; justify-content:space-between; padding:5px 0; font-size:13px;"><span style="color:var(--text-muted);">Número do Pedido</span><span>#${pedido.id}</span></div>
       <div style="display:flex; justify-content:space-between; padding:5px 0; font-size:13px;"><span style="color:var(--text-muted);">Data da Compra</span><span>${dataCompra}</span></div>
@@ -81,10 +83,83 @@ function renderizarConfirmacao(pedido, status, msg) {
     </div>
   `;
 
+  if (status.pago) renderizarCriarSenhaPosCompra();
+
   // Se ainda estiver em análise, continua verificando em segundo plano e
   // atualiza a tela sozinha assim que houver uma resposta definitiva.
   if (!status.pago && (status.statusPagamento === 'in_process' || status.statusPagamento === 'pending')) {
     setTimeout(() => window.location.reload(), 8000);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fase 25 — Criar senha após a compra: aparece logo abaixo da mensagem de
+// sucesso, sem botão de "agora não" — a pessoa já comprou (o pedido já
+// existe, já foi pago), então isso nunca bloqueia a compra em si, só
+// conduz pra criar a conta logo em seguida. Só aparece se a pessoa ainda
+// não tiver uma sessão de conta ativa (já logada).
+// ---------------------------------------------------------------------------
+function renderizarCriarSenhaPosCompra() {
+  const secao = document.getElementById('criar-senha-pos-compra');
+  if (!secao) return;
+
+  if (CONTA_CLIENTE) return; // já tem conta logada, não precisa oferecer de novo
+
+  const dadosRecentes = JSON.parse(localStorage.getItem('checkoutDadosRecentes') || 'null');
+  if (!dadosRecentes || !dadosRecentes.email) return; // sem e-mail coletado, não tem como oferecer
+
+  secao.innerHTML = `
+    <div class="card-panel" style="text-align:left; margin-bottom:22px; border:2px solid var(--primary);">
+      <h3 style="font-size:16px; margin-bottom:6px;">Quer acompanhar esse pedido facilmente?</h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Crie uma senha agora — seus dados já estão preenchidos, é só isso.</p>
+      <form onsubmit="handleCriarSenhaPosCompra(event)">
+        <div class="form-group" style="margin-bottom:10px;">
+          <label style="font-size:12px;">Senha (mínimo 8 caracteres)</label>
+          <input type="password" id="pos-compra-senha" class="form-control" required minlength="8" autocomplete="new-password">
+        </div>
+        <p id="pos-compra-erro" style="color:var(--danger-color, #dc2626); font-size:12px; margin-bottom:10px;"></p>
+        <button type="submit" class="btn" style="width:100%;">Criar Senha e Acompanhar</button>
+      </form>
+    </div>
+  `;
+}
+
+async function handleCriarSenhaPosCompra(event) {
+  event.preventDefault();
+  const dadosRecentes = JSON.parse(localStorage.getItem('checkoutDadosRecentes') || 'null');
+  const senha = document.getElementById('pos-compra-senha').value;
+  const erroEl = document.getElementById('pos-compra-erro');
+  erroEl.textContent = '';
+
+  if (!dadosRecentes) { erroEl.textContent = 'Não foi possível identificar seus dados. Recarregue a página.'; return; }
+
+  try {
+    const res = await fetch(`${API_BASE}/loja/conta/criar-senha`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: dadosRecentes.email, senha })
+    });
+    const dados = await res.json();
+
+    if (!res.ok) {
+      // Se a conta já tem senha (ex: pessoa já criou numa compra
+      // anterior), não é erro de verdade — só esconde a seção.
+      const secao = document.getElementById('criar-senha-pos-compra');
+      if (secao) secao.innerHTML = '';
+      return;
+    }
+
+    salvarSessaoConta(dados);
+    localStorage.removeItem('checkoutDadosRecentes');
+
+    const secao = document.getElementById('criar-senha-pos-compra');
+    secao.innerHTML = `
+      <div class="card-panel" style="text-align:left; margin-bottom:22px; border:2px solid var(--success-color, #16a34a);">
+        <p style="font-size:14px;"><i class="fa-solid fa-circle-check" style="color:var(--success-color, #16a34a);"></i> Senha criada! Você já pode acompanhar seus pedidos em <a href="minha-conta.html">Minha Conta</a>.</p>
+      </div>
+    `;
+  } catch (err) {
+    console.error('Erro ao criar senha após a compra', err);
+    erroEl.textContent = 'Erro ao conectar. Tente novamente.';
   }
 }
 

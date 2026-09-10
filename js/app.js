@@ -11,6 +11,17 @@ let CART = JSON.parse(localStorage.getItem('cart') || '[]');
 let CURRENT_USER = JSON.parse(localStorage.getItem('storeUser') || 'null');
 let CATEGORIAS_LOJA = [];
 
+// Fase 24 — sessão da Área de Usuário (login com senha), completamente
+// separada do CURRENT_USER acima (identificação simples, sem senha,
+// usada só no checkout rápido). As duas coisas coexistem: dá pra estar
+// "identificado" pro checkout sem ter uma conta com senha, e vice-versa.
+let CONTA_CLIENTE = (() => {
+  const token = localStorage.getItem('contaClienteToken');
+  const infoRaw = localStorage.getItem('contaClienteInfo');
+  if (!token || !infoRaw) return null;
+  try { return { token, info: JSON.parse(infoRaw) }; } catch (e) { return null; }
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   updateCartBadge();
   updateLoginButton();
@@ -61,7 +72,10 @@ function montarCardProduto(p) {
     <div class="product-card">
       ${promo ? '<span class="badge-promo">Oferta</span>' : ''}
       <a class="card-link" href="produto.html?id=${p.id}">
-        <img src="${p.imagem || 'https://via.placeholder.com/300x220?text=Produto'}" alt="${escapeHtml(p.nome)}">
+        <div class="product-card-imagem-wrap">
+          <img src="${p.imagem || 'https://via.placeholder.com/300x220?text=Produto'}" alt="${escapeHtml(p.nome)}">
+          <button class="btn-icone-carrinho" onclick="event.preventDefault(); event.stopPropagation(); addToCart(${p.id});" aria-label="Adicionar ao carrinho" title="Adicionar ao carrinho"><i class="fa-solid fa-cart-plus"></i></button>
+        </div>
         <div class="info">
           <div class="name">${escapeHtml(p.nome)}</div>
           ${promo ? `<div class="price-old">${formatCurrency(p.preco)}</div>` : ''}
@@ -69,7 +83,7 @@ function montarCardProduto(p) {
           <div class="installments">${htmlParcelamento(p)}</div>
         </div>
       </a>
-      <button class="btn" onclick="addToCart(${p.id})">Adicionar ao Carrinho</button>
+      <button class="btn" onclick="comprarAgora(${p.id})">Comprar</button>
     </div>
   `;
 }
@@ -219,6 +233,31 @@ async function addToCart(produtoId, opcoes = {}) {
     openCartModal();
   } catch (err) {
     console.error('Erro ao adicionar ao carrinho', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// "Comprar" — compra avulsa: cria o pedido só com ESSE produto (ignora
+// qualquer coisa que já esteja no carrinho) e manda direto pro checkout,
+// sem passar pelo modal do carrinho. Usada tanto pelo card de produto
+// (Home/Categoria/Relacionados) quanto pelo botão da Ficha de Produto.
+// ---------------------------------------------------------------------------
+async function comprarAgora(produtoId, opcoes = {}) {
+  try {
+    const produto = await fetch(`${API_BASE}/produtos/${produtoId}`).then((r) => { if (!r.ok) throw new Error('não encontrado'); return r.json(); });
+    const precoUnit = (opcoes.precoAdicional && opcoes.precoAdicional > 0) ? opcoes.precoAdicional : precoFinal(produto);
+    const nomeItem = produto.nome + (opcoes.variacaoNome ? ` (${opcoes.variacaoNome})` : '');
+
+    // Fase 25 — não cria o pedido aqui mais. Só guarda o item e manda pro
+    // checkout, que coleta os dados completos (CPF, nascimento, etc.) na
+    // Etapa 0 antes de criar o pedido de verdade.
+    localStorage.setItem('buyNowItem', JSON.stringify({
+      id: produto.id, variacaoId: opcoes.variacaoId || null, nome: nomeItem, preco: precoUnit, qty: 1
+    }));
+    window.location.href = 'checkout.html';
+  } catch (err) {
+    console.error('Erro ao iniciar compra direta', err);
+    alert('Não foi possível iniciar a compra agora. Tente novamente.');
   }
 }
 
@@ -376,30 +415,9 @@ function closeCartModal() {
 }
 
 // ---------------------------------------------------------------------------
-// Login / Identificação do cliente (via WhatsApp)
-// ---------------------------------------------------------------------------
-function openLoginModal() {
-  if (CURRENT_USER) {
-    alert(`Você já está identificado como ${CURRENT_USER.nome}.`);
-    return;
-  }
-  document.getElementById('identificacao-etapa-1').style.display = 'block';
-  document.getElementById('identificacao-etapa-2').style.display = 'none';
-  document.getElementById('login-modal').classList.add('open');
-}
-
-function closeLoginModal() {
-  document.getElementById('login-modal').classList.remove('open');
-}
-
-function voltarParaIdentificacao() {
-  document.getElementById('identificacao-etapa-1').style.display = 'block';
-  document.getElementById('identificacao-etapa-2').style.display = 'none';
-}
-
-// ---------------------------------------------------------------------------
-// Validação de CPF/CNPJ (algoritmo oficial de dígito verificador) — evita
-// erro de digitação antes mesmo de consultar o servidor.
+// Validação de CPF/CNPJ (algoritmo oficial de dígito verificador) — usada
+// na Etapa 0 do checkout novo, pra evitar erro de digitação antes mesmo
+// de consultar o servidor.
 // ---------------------------------------------------------------------------
 function validarCPF(cpf) {
   cpf = (cpf || '').replace(/\D/g, '');
@@ -432,109 +450,10 @@ function validarCNPJ(cnpj) {
 
 function documentoValidoOuVazio(valor) {
   const digitos = (valor || '').replace(/\D/g, '');
-  if (!digitos) return true; // campo opcional na Etapa 1
+  if (!digitos) return true;
   if (digitos.length === 11) return validarCPF(digitos);
   if (digitos.length === 14) return validarCNPJ(digitos);
   return false;
-}
-
-// ---------------------------------------------------------------------------
-// ETAPA 1 — Identificação: procura o cliente por e-mail, CPF/CNPJ ou
-// telefone. Se já existir, pula direto pro checkout. Se não existir, mostra
-// a Etapa 2 pra completar o cadastro.
-// ---------------------------------------------------------------------------
-async function handleIdentificacao(event) {
-  event.preventDefault();
-  const erroEl = document.getElementById('ident-erro');
-  erroEl.textContent = '';
-
-  const email = document.getElementById('ident-email').value.trim();
-  const documento = document.getElementById('ident-documento').value.trim();
-  const telefone = document.getElementById('ident-telefone').value.trim();
-
-  if (!email && !documento && !telefone) {
-    erroEl.textContent = 'Informe ao menos um dado (e-mail, CPF/CNPJ ou telefone).';
-    return;
-  }
-  if (documento && !documentoValidoOuVazio(documento)) {
-    erroEl.textContent = 'CPF/CNPJ inválido. Confira os números digitados.';
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/clientes/identificar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, documento, telefone })
-    });
-    const dados = await res.json();
-
-    if (dados.existente) {
-      definirUsuarioAtual(dados.cliente);
-      closeLoginModal();
-    } else {
-      // Cliente novo — leva pra Etapa 2, já preenchendo o que a pessoa digitou
-      document.getElementById('cad-documento').value = documento;
-      document.getElementById('cad-telefone').value = telefone;
-      document.getElementById('cad-email').value = email;
-      document.getElementById('identificacao-etapa-1').style.display = 'none';
-      document.getElementById('identificacao-etapa-2').style.display = 'block';
-    }
-  } catch (err) {
-    console.error(err);
-    erroEl.textContent = 'Não foi possível verificar seus dados. Tente novamente.';
-  }
-}
-
-// ---------------------------------------------------------------------------
-// ETAPA 2 — Dados do Cliente: cadastra o cliente novo. Isso cria o registro
-// automaticamente em Clientes no painel ERP — é a mesma tabela, não existe
-// um cadastro "só da loja" separado.
-// ---------------------------------------------------------------------------
-async function handleCadastro(event) {
-  event.preventDefault();
-  const erroEl = document.getElementById('cad-erro');
-  erroEl.textContent = '';
-
-  const documento = document.getElementById('cad-documento').value.trim();
-  if (documento && !documentoValidoOuVazio(documento)) {
-    erroEl.textContent = 'CPF inválido. Confira os números digitados.';
-    return;
-  }
-
-  const payload = {
-    nome: document.getElementById('cad-nome').value.trim(),
-    sobrenome: document.getElementById('cad-sobrenome').value.trim(),
-    documento,
-    dataNascimento: document.getElementById('cad-nascimento').value,
-    telefone: document.getElementById('cad-telefone').value.trim(),
-    email: document.getElementById('cad-email').value.trim()
-  };
-
-  if (!payload.nome) { erroEl.textContent = 'Nome é obrigatório.'; return; }
-  if (!payload.telefone && !payload.email) { erroEl.textContent = 'Informe ao menos telefone ou e-mail.'; return; }
-
-  try {
-    const res = await fetch(`${API_BASE}/clientes/cadastrar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) { const erro = await res.json(); erroEl.textContent = erro.error || 'Erro ao cadastrar.'; return; }
-
-    const cliente = await res.json();
-    definirUsuarioAtual(cliente);
-    closeLoginModal();
-  } catch (err) {
-    console.error(err);
-    erroEl.textContent = 'Não foi possível concluir o cadastro. Tente novamente.';
-  }
-}
-
-function definirUsuarioAtual(cliente) {
-  CURRENT_USER = cliente;
-  localStorage.setItem('storeUser', JSON.stringify(CURRENT_USER));
-  updateLoginButton();
 }
 
 async function carregarConfiguracoesDaLoja() {
@@ -562,10 +481,21 @@ async function carregarConfiguracoesDaLoja() {
   }
 }
 
-function updateLoginButton() {
-  const span = document.querySelector('#login-nav-btn .texto-nav-desktop');
-  if (!span) return;
-  span.textContent = CURRENT_USER ? CURRENT_USER.nome : 'Minha Conta';
+// O botão "Minha Conta" agora é só ícone, sem nome — não tem mais texto
+// pra trocar. Mantida como função vazia (só pra não quebrar chamadas que
+// ainda existam) — o comportamento de clique já é tratado por
+// handleCliqueMinhaConta().
+function updateLoginButton() {}
+
+// Clique no botão "Minha Conta" do header — se já tem sessão de conta de
+// verdade (com senha), vai direto pra área logada; senão, abre o login
+// com senha (diferente do modal de identificação simples do checkout).
+function handleCliqueMinhaConta() {
+  if (CONTA_CLIENTE) {
+    window.location.href = 'minha-conta.html';
+  } else {
+    openContaModal();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -576,61 +506,152 @@ async function checkout() {
     alert('Seu carrinho está vazio.');
     return;
   }
-  if (!CURRENT_USER) {
-    closeCartModal();
-    openLoginModal();
-    alert('Identifique-se antes de finalizar o pedido.');
-    return;
-  }
 
-  // Confirma que o cliente guardado no navegador ainda existe de verdade
-  // no banco — sem isso, se o cadastro tivesse sumido por qualquer
-  // motivo, o pedido nasceria "quebrado" (com um cliente que não existe),
-  // e só descobriríamos isso depois, no painel.
+  // Fase 25 — não cria mais o pedido aqui, e não pede identificação antes
+  // de seguir (isso derrubava a conversão sem necessidade — a compra
+  // nunca fica bloqueada esperando login). O carrinho (já salvo em
+  // localStorage) e o cupom/vendedor aplicados são lidos pela Etapa 0 do
+  // checkout, que coleta os dados completos antes de criar o pedido de
+  // verdade.
+  if (CUPOM_APLICADO) localStorage.setItem('cupomAplicadoCheckout', JSON.stringify(CUPOM_APLICADO));
+  else localStorage.removeItem('cupomAplicadoCheckout');
+
+  if (VENDEDOR_APLICADO) localStorage.setItem('vendedorAplicadoCheckout', JSON.stringify(VENDEDOR_APLICADO));
+  else localStorage.removeItem('vendedorAplicadoCheckout');
+
+  closeCartModal();
+  window.location.href = 'checkout.html';
+}
+
+// ---------------------------------------------------------------------------
+// Fase 24 — Área de Usuário (login com senha). Modal separado do
+// login-modal de identificação simples (que continua existindo, sem
+// mudar nada, pro checkout rápido).
+// ---------------------------------------------------------------------------
+function openContaModal() {
+  mostrarEtapaConta('entrar');
+  document.getElementById('conta-modal').classList.add('open');
+}
+
+function closeContaModal() {
+  document.getElementById('conta-modal').classList.remove('open');
+}
+
+function mostrarEtapaConta(etapa) {
+  ['entrar', 'cadastrar', 'ativar', 'esqueci'].forEach((e) => {
+    const el = document.getElementById(`conta-etapa-${e}`);
+    if (el) el.style.display = e === etapa ? 'block' : 'none';
+  });
+}
+
+function salvarSessaoConta(dados) {
+  CONTA_CLIENTE = { token: dados.token, info: { id: dados.id, nome: dados.nome, email: dados.email } };
+  localStorage.setItem('contaClienteToken', dados.token);
+  localStorage.setItem('contaClienteInfo', JSON.stringify(CONTA_CLIENTE.info));
+}
+
+function sairDaConta() {
+  if (!confirm('Deseja sair da sua conta?')) return;
+  CONTA_CLIENTE = null;
+  localStorage.removeItem('contaClienteToken');
+  localStorage.removeItem('contaClienteInfo');
+  window.location.href = 'index.html';
+}
+
+async function handleEntrarConta(event) {
+  event.preventDefault();
+  const identificador = document.getElementById('conta-entrar-identificador').value.trim();
+  const senha = document.getElementById('conta-entrar-senha').value;
+  const erroEl = document.getElementById('conta-entrar-erro');
+  erroEl.textContent = '';
+
   try {
-    const verificacao = await fetch(`${API_BASE}/loja/verificar-cliente/${CURRENT_USER.id}`).then((r) => r.json());
-    if (!verificacao.existe) {
-      localStorage.removeItem('storeUser');
-      CURRENT_USER = null;
-      updateLoginButton();
-      closeCartModal();
-      alert('Sua identificação expirou — por favor, informe seu nome e WhatsApp novamente pra finalizar o pedido.');
-      openLoginModal();
-      return;
-    }
+    const res = await fetch(`${API_BASE}/loja/conta/entrar`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identificador, senha })
+    });
+    const dados = await res.json();
+    if (!res.ok) { erroEl.textContent = dados.error || 'Não foi possível entrar.'; return; }
+
+    salvarSessaoConta(dados);
+    closeContaModal();
+    window.location.href = 'minha-conta.html';
   } catch (err) {
-    console.error('Erro ao verificar cliente antes do checkout', err);
-    // Se a verificação falhar por instabilidade de rede, segue o fluxo
-    // normal em vez de travar a compra — a validação é uma proteção
-    // extra, não pode virar um bloqueio se ela mesma falhar.
+    console.error('Erro ao entrar na conta', err);
+    erroEl.textContent = 'Erro ao conectar. Tente novamente.';
   }
+}
 
-  const { total } = totalComDesconto();
-  const itens = CART.map((i) => ({
-    produtoId: i.id, variacaoId: i.variacaoId || null, nome: i.nome, quantidade: i.qty, precoUnitario: i.preco
-  }));
+async function handleCadastrarConta(event) {
+  event.preventDefault();
+  const nome = document.getElementById('conta-cad-nome').value.trim();
+  const email = document.getElementById('conta-cad-email').value.trim();
+  const telefone = document.getElementById('conta-cad-telefone').value.trim();
+  const senha = document.getElementById('conta-cad-senha').value;
+  const erroEl = document.getElementById('conta-cad-erro');
+  erroEl.textContent = '';
 
   try {
-    const pedido = await fetch(`${API_BASE}/pedidos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clienteId: CURRENT_USER.id, status: 'recebido', total, itens,
-        origem: 'catalogo-online', criadoEm: new Date().toISOString(),
-        cupomCodigo: CUPOM_APLICADO ? CUPOM_APLICADO.codigo : null,
-        vendedorId: VENDEDOR_APLICADO ? VENDEDOR_APLICADO.vendedorId : null,
-        valorDesconto: CUPOM_APLICADO ? CUPOM_APLICADO.desconto : 0
-      })
+    const res = await fetch(`${API_BASE}/loja/conta/cadastrar`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, email, telefone, senha })
+    });
+    const dados = await res.json();
+    if (!res.ok) { erroEl.textContent = dados.error || 'Não foi possível criar a conta.'; return; }
+
+    salvarSessaoConta(dados);
+    closeContaModal();
+    window.location.href = 'minha-conta.html';
+  } catch (err) {
+    console.error('Erro ao cadastrar conta', err);
+    erroEl.textContent = 'Erro ao conectar. Tente novamente.';
+  }
+}
+
+async function handleAtivarConta(event) {
+  event.preventDefault();
+  const identificador = document.getElementById('conta-ativar-identificador').value.trim();
+  const senha = document.getElementById('conta-ativar-senha').value;
+  const erroEl = document.getElementById('conta-ativar-erro');
+  erroEl.textContent = '';
+
+  const ehEmail = identificador.includes('@');
+  const payload = ehEmail ? { email: identificador, senha } : { telefone: identificador.replace(/\D/g, ''), senha };
+
+  try {
+    const res = await fetch(`${API_BASE}/loja/conta/criar-senha`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const dados = await res.json();
+    if (!res.ok) { erroEl.textContent = dados.error || 'Não foi possível criar a senha.'; return; }
+
+    salvarSessaoConta(dados);
+    closeContaModal();
+    window.location.href = 'minha-conta.html';
+  } catch (err) {
+    console.error('Erro ao ativar conta', err);
+    erroEl.textContent = 'Erro ao conectar. Tente novamente.';
+  }
+}
+
+async function handleEsqueciSenhaConta(event) {
+  event.preventDefault();
+  const email = document.getElementById('conta-esq-email').value.trim();
+  const msgEl = document.getElementById('conta-esq-msg');
+  msgEl.style.color = '';
+  msgEl.textContent = 'Enviando...';
+
+  try {
+    const dados = await fetch(`${API_BASE}/loja/conta/esqueci-senha`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
     }).then((r) => r.json());
-
-    // O carrinho já cumpriu seu papel (virou pedido) — limpa antes de sair da página
-    CART = [];
-    CUPOM_APLICADO = null;
-    saveCart();
-
-    window.location.href = `checkout.html?pedido=${pedido.id}`;
+    msgEl.style.color = 'var(--success-color, #16a34a)';
+    msgEl.textContent = dados.mensagem;
   } catch (err) {
-    console.error('Erro ao registrar pedido', err);
-    alert('Não foi possível iniciar o pagamento. Tente novamente.');
+    console.error('Erro ao pedir redefinição de senha', err);
+    msgEl.style.color = 'var(--danger-color)';
+    msgEl.textContent = 'Erro ao enviar. Tente novamente.';
   }
 }

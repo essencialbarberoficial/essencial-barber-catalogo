@@ -80,7 +80,10 @@ function renderizarProduto(p, variacoes, imagensRecebidas, especificacoes) {
         ` : ''}
       </div>
       <div class="produto-info">
-        <h1>${escapeHtml(p.nome)}</h1>
+        <div class="produto-titulo-linha">
+          <h1>${escapeHtml(p.nome)}</h1>
+          <button class="btn-icone-contorno" onclick="compartilharProduto()" aria-label="Compartilhar" title="Compartilhar"><i class="fa-solid fa-share-nodes"></i></button>
+        </div>
         ${p.marca ? `<div class="produto-marca" style="font-size:13px; color:var(--text-muted); margin-bottom:6px;">Marca: <strong>${escapeHtml(p.marca)}</strong></div>` : ''}
         <div class="produto-sku">SKU: ${escapeHtml(p.sku || '—')} ${p.estoque > 0 ? '· <span style="color:var(--success-color)">Em estoque</span>' : '· <span style="color:var(--danger-color)">Sem estoque</span>'}</div>
 
@@ -98,7 +101,8 @@ function renderizarProduto(p, variacoes, imagensRecebidas, especificacoes) {
         ` : ''}
 
         <div class="produto-acoes">
-          <button class="btn" onclick="adicionarProdutoAoCarrinho()"><i class="fa-solid fa-cart-plus"></i> Comprar</button>
+          <button class="btn" onclick="comprarProdutoAgora()"><i class="fa-solid fa-bolt"></i> Comprar</button>
+          <button class="btn-icone-carrinho btn-icone-carrinho-produto" onclick="adicionarProdutoAoCarrinho()" aria-label="Adicionar ao carrinho" title="Adicionar ao carrinho"><i class="fa-solid fa-cart-plus"></i></button>
         </div>
 
         <div class="frete-widget">
@@ -164,6 +168,18 @@ function adicionarProdutoAoCarrinho() {
     return;
   }
   addToCart(PRODUTO_ATUAL.id, VARIACAO_SELECIONADA ? {
+    variacaoId: VARIACAO_SELECIONADA.id,
+    variacaoNome: VARIACAO_SELECIONADA.nome,
+    precoAdicional: VARIACAO_SELECIONADA.precoAdicional
+  } : {});
+}
+
+function comprarProdutoAgora() {
+  if (VARIACOES_ATUAL.length && !VARIACAO_SELECIONADA) {
+    alert('Escolha uma opção antes de comprar.');
+    return;
+  }
+  comprarAgora(PRODUTO_ATUAL.id, VARIACAO_SELECIONADA ? {
     variacaoId: VARIACAO_SELECIONADA.id,
     variacaoNome: VARIACAO_SELECIONADA.nome,
     precoAdicional: VARIACAO_SELECIONADA.precoAdicional
@@ -279,3 +295,33 @@ document.addEventListener('scroll', (e) => {
     min.classList.toggle('ativa', i === indiceAtual);
   });
 }, true); // captura, já que 'scroll' não borbulha por padrão
+
+// ---------------------------------------------------------------------------
+// Compartilhar — usa o menu nativo do celular (abre WhatsApp, Instagram,
+// copiar link, etc. sem precisar construir nada visual) quando disponível.
+// No computador, a maioria dos navegadores não tem esse menu nativo, então
+// cai pra copiar o link direto — com um prompt de reserva caso nem a área
+// de transferência esteja disponível.
+// ---------------------------------------------------------------------------
+async function compartilharProduto() {
+  const url = window.location.href;
+  const titulo = PRODUTO_ATUAL ? PRODUTO_ATUAL.nome : document.title;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: titulo, url });
+    } catch (err) {
+      // Usuário cancelou o menu de compartilhar — não é um erro de
+      // verdade, só ignora.
+    }
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    alert('Link copiado! Cole onde quiser compartilhar.');
+  } catch (err) {
+    console.error('Erro ao copiar o link do produto', err);
+    prompt('Copie o link abaixo pra compartilhar:', url);
+  }
+}
