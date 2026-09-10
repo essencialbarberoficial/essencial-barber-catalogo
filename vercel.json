@@ -1,5 +1,19 @@
 {
   "rewrites": [
     { "source": "/produto.html", "destination": "/api/produto-preview" }
+  ],
+  "headers": [
+    {
+      "source": "/js/checkout.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" }]
+    },
+    {
+      "source": "/js/confirmacao.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" }]
+    },
+    {
+      "source": "/js/app.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" }]
+    }
   ]
 }
