@@ -295,7 +295,7 @@ async function confirmarEtapaDadosCliente() {
     // O e-mail/nome já foram digitados agora mesmo — guarda temporariamente
     // pra tela de confirmação oferecer a criação de senha sem precisar
     // buscar isso de novo (e sem expor esse dado numa rota pública).
-    localStorage.setItem('checkoutDadosRecentes', JSON.stringify({ nome, email }));
+    localStorage.setItem('checkoutDadosRecentes', JSON.stringify({ nome, email, telefone }));
 
     PEDIDO_ATUAL = await fetch(`${API_BASE}/pedidos/${dados.pedidoId}/publico`).then((r) => r.json());
     // Reflete o pedido na URL — cada checkout ganha um endereço próprio,
@@ -663,29 +663,62 @@ function renderizarCheckout() {
 function finalizarPorWhatsApp() {
   const dadosRecentes = JSON.parse(localStorage.getItem('checkoutDadosRecentes') || 'null');
   const nome = dadosRecentes ? dadosRecentes.nome : '';
+  const telefoneCliente = dadosRecentes ? dadosRecentes.telefone : '';
 
-  const itens = PEDIDO_ATUAL.itens.map((i) => `• ${i.quantidade}x ${i.nomeProduto}`).join('\n');
+  const divisor = '-------------------------------';
+  const totalItens = PEDIDO_ATUAL.itens.reduce((soma, i) => soma + i.quantidade, 0);
+  const subtotalItens = PEDIDO_ATUAL.itens.reduce((soma, i) => soma + (i.quantidade * i.precoUnitario), 0);
 
-  let entregaTexto;
+  const linhasItens = PEDIDO_ATUAL.itens
+    .map((i) => `*${i.quantidade}x ${i.nomeProduto}* - ${formatCurrency(i.precoUnitario)}/un`)
+    .join('\n\n');
+
+  let enderecoTexto;
   if (PEDIDO_ATUAL.tipoRecebimento === 'retirada') {
-    entregaTexto = `Retirada na loja${PEDIDO_ATUAL.nomeResponsavelRetirada ? ` (retirado por: ${PEDIDO_ATUAL.nomeResponsavelRetirada})` : ''}`;
+    enderecoTexto = 'Retirada na loja';
   } else if (PEDIDO_ATUAL.enderecoEntrega) {
     const e = PEDIDO_ATUAL.enderecoEntrega;
-    entregaTexto = `Entrega em: ${e.rua || ''}, ${e.numero || ''}${e.complemento ? ' - ' + e.complemento : ''}, ${e.bairro || ''}, ${e.cidade || ''}/${e.estado || ''} - CEP ${e.cep || ''}`;
+    enderecoTexto = `${e.rua || ''}, ${e.numero || ''}${e.complemento ? ', ' + e.complemento : ''}, ${e.bairro || ''}, ${e.cidade || ''}`;
   } else {
-    entregaTexto = 'A combinar';
+    enderecoTexto = 'A combinar';
   }
 
+  const formaEntrega = PEDIDO_ATUAL.tipoRecebimento === 'retirada' ? 'Retirada na Loja' : 'Entrega';
+  const opcaoEntrega = PEDIDO_ATUAL.tipoRecebimento === 'retirada'
+    ? (PEDIDO_ATUAL.nomeResponsavelRetirada ? `Retirado por: ${PEDIDO_ATUAL.nomeResponsavelRetirada}` : 'Você mesmo')
+    : (PEDIDO_ATUAL.entrega && PEDIDO_ATUAL.entrega.nome ? PEDIDO_ATUAL.entrega.nome : 'A combinar');
+
+  const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
   const partes = [
-    `Olá! Gostaria de finalizar o pedido #${PEDIDO_ATUAL.id}.`,
-    nome ? `Nome: ${nome}` : null,
+    `*PEDIDO #${PEDIDO_ATUAL.id}*`,
     '',
-    itens,
     '',
-    entregaTexto,
+    divisor,
+    '👉 *DETALHES DO PEDIDO*',
+    linhasItens,
     '',
-    `Total: ${formatCurrency(PEDIDO_ATUAL.total)}`
-  ].filter((linha) => linha !== null).join('\n');
+    divisor,
+    '👉 *DADOS DO CLIENTE*',
+    `Nome: *${nome || 'Não informado'}*`,
+    `Telefone: *${telefoneCliente || 'Não informado'}*`,
+    `Endereço: *${enderecoTexto}*`,
+    '',
+    divisor,
+    '👉 *DETALHES DA ENTREGA*',
+    `Forma: *${formaEntrega}*`,
+    `Opção: *${opcaoEntrega}*`,
+    '',
+    divisor,
+    '👉 *VALORES E PAGAMENTO*',
+    `${totalItens} ${totalItens === 1 ? 'item' : 'itens'}: *${formatCurrency(subtotalItens)}*`,
+    `Entrega: *${PEDIDO_ATUAL.valorFrete > 0 ? formatCurrency(PEDIDO_ATUAL.valorFrete) : 'Grátis'}*`,
+    `Forma de pagamento: *A combinar*`,
+    `Total: *${formatCurrency(PEDIDO_ATUAL.total)}*`,
+    '',
+    divisor,
+    `_Gerado pelo Catálogo às ${agora}_`
+  ].join('\n');
 
   const mensagem = encodeURIComponent(partes);
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${mensagem}`, '_blank');
