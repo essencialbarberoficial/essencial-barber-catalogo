@@ -661,8 +661,33 @@ function renderizarCheckout() {
 }
 
 function finalizarPorWhatsApp() {
-  const itens = PEDIDO_ATUAL.itens.map((i) => `${i.quantidade}x ${i.nomeProduto}`).join(', ');
-  const mensagem = encodeURIComponent(`Olá! Gostaria de finalizar o pedido #${PEDIDO_ATUAL.id}.\n\n${itens}\n\nTotal: ${formatCurrency(PEDIDO_ATUAL.total)}`);
+  const dadosRecentes = JSON.parse(localStorage.getItem('checkoutDadosRecentes') || 'null');
+  const nome = dadosRecentes ? dadosRecentes.nome : '';
+
+  const itens = PEDIDO_ATUAL.itens.map((i) => `• ${i.quantidade}x ${i.nomeProduto}`).join('\n');
+
+  let entregaTexto;
+  if (PEDIDO_ATUAL.tipoRecebimento === 'retirada') {
+    entregaTexto = `Retirada na loja${PEDIDO_ATUAL.nomeResponsavelRetirada ? ` (retirado por: ${PEDIDO_ATUAL.nomeResponsavelRetirada})` : ''}`;
+  } else if (PEDIDO_ATUAL.enderecoEntrega) {
+    const e = PEDIDO_ATUAL.enderecoEntrega;
+    entregaTexto = `Entrega em: ${e.rua || ''}, ${e.numero || ''}${e.complemento ? ' - ' + e.complemento : ''}, ${e.bairro || ''}, ${e.cidade || ''}/${e.estado || ''} - CEP ${e.cep || ''}`;
+  } else {
+    entregaTexto = 'A combinar';
+  }
+
+  const partes = [
+    `Olá! Gostaria de finalizar o pedido #${PEDIDO_ATUAL.id}.`,
+    nome ? `Nome: ${nome}` : null,
+    '',
+    itens,
+    '',
+    entregaTexto,
+    '',
+    `Total: ${formatCurrency(PEDIDO_ATUAL.total)}`
+  ].filter((linha) => linha !== null).join('\n');
+
+  const mensagem = encodeURIComponent(partes);
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${mensagem}`, '_blank');
 }
 
