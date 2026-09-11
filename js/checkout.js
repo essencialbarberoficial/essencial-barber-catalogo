@@ -40,12 +40,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (pedidoId) {
       // Voltando pra um pedido que já existe (ex: link de pagamento
-      // pendente reaberto) — pula direto pra Entrega, como já era.
-      PEDIDO_ATUAL = await fetch(`${API_BASE}/pedidos/${pedidoId}/publico`).then((r) => { if (!r.ok) throw new Error('não encontrado'); return r.json(); });
+      // pendente reaberto, ou a página recarregada com um Pix já gerado).
+      const [pedidoCarregado, statusCarregado] = await Promise.all([
+        fetch(`${API_BASE}/pedidos/${pedidoId}/publico`).then((r) => { if (!r.ok) throw new Error('não encontrado'); return r.json(); }),
+        fetch(`${API_BASE}/checkout/status/${pedidoId}`).then((r) => r.json())
+      ]);
+      PEDIDO_ATUAL = pedidoCarregado;
+
       if (PEDIDO_ATUAL.pago) {
         window.location.href = `confirmacao.html?pedido=${pedidoId}`;
         return;
       }
+
+      // Já existe uma tentativa de pagamento (Pix gerado, mesmo que ainda
+      // pendente) — pula direto pra tela de Pagamento, em vez de voltar
+      // pra Entrega (que ficaria travada com "pedido já pago/em
+      // andamento e não pode ser alterado", sem deixar continuar).
+      if (statusCarregado.statusPagamento) {
+        renderizarEtapaPagamento();
+        return;
+      }
+
       renderizarEtapaEntrega();
       return;
     }
