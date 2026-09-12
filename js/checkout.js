@@ -118,6 +118,11 @@ async function iniciarCheckoutComDadosDaConta(conta) {
   const cupomSalvo = JSON.parse(localStorage.getItem('cupomAplicadoCheckout') || 'null');
   const vendedorSalvo = JSON.parse(localStorage.getItem('vendedorAplicadoCheckout') || 'null');
 
+  // CORREÇÃO: quem já está logado pula a Etapa 0, então esses dados nunca
+  // eram salvos aqui — a mensagem do WhatsApp (e qualquer outro lugar que
+  // dependa disso) ficava sem nome/telefone pra clientes já logados.
+  localStorage.setItem('checkoutDadosRecentes', JSON.stringify({ nome: conta.nome, email: conta.email, telefone: conta.telefone }));
+
   try {
     const dados = await fetch(`${API_BASE}/loja/checkout/iniciar`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
