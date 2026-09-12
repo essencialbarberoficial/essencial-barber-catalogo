@@ -142,9 +142,11 @@ async function iniciarCheckoutComDadosDaConta(conta) {
     localStorage.removeItem('cupomAplicadoCheckout');
     localStorage.removeItem('vendedorAplicadoCheckout');
 
-    // Cliente logado já vai acompanhar pela conta — não precisa do
-    // convite de criar senha na confirmação de novo.
-    localStorage.removeItem('checkoutDadosRecentes');
+    // Nota: o convite de criar senha na confirmação já tem sua própria
+    // proteção contra aparecer de novo pra quem já está logado (checa
+    // CONTA_CLIENTE direto no confirmacao.js) — não precisa apagar os
+    // dados aqui pra isso. E não devemos apagar mesmo: a mensagem do
+    // WhatsApp (modo Catálogo WhatsApp) também depende desses dados.
 
     CLIENTE_ENCONTRADO_CHECKOUT = conta; // já usa o endereço salvo na Etapa Entrega
     PEDIDO_ATUAL = await fetch(`${API_BASE}/pedidos/${dados.pedidoId}/publico`).then((r) => r.json());
@@ -666,9 +668,13 @@ function renderizarCheckout() {
 }
 
 function finalizarPorWhatsApp() {
+  // CORREÇÃO ARQUITETURAL: prioriza o dado que vem do próprio pedido
+  // (confiável, sempre vai existir enquanto o pedido existir) — o
+  // localStorage é só uma reserva, pro caso raro de algo ter dado errado
+  // no meio do caminho e o pedido não ter cliente vinculado ainda.
   const dadosRecentes = JSON.parse(localStorage.getItem('checkoutDadosRecentes') || 'null');
-  const nome = dadosRecentes ? dadosRecentes.nome : '';
-  const telefoneCliente = dadosRecentes ? dadosRecentes.telefone : '';
+  const nome = PEDIDO_ATUAL.clienteNome || (dadosRecentes ? dadosRecentes.nome : '');
+  const telefoneCliente = PEDIDO_ATUAL.clienteTelefone || (dadosRecentes ? dadosRecentes.telefone : '');
 
   const divisor = '-------------------------------';
   const totalItens = PEDIDO_ATUAL.itens.reduce((soma, i) => soma + i.quantidade, 0);
