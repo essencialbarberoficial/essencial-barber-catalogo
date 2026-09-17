@@ -137,8 +137,11 @@ async function iniciarCheckoutComDadosDaConta(conta) {
 
     if (!dados.pedidoId) return false;
 
-    if (MODO_COMPRAR_AGORA) localStorage.removeItem('buyNowItem');
-    else { localStorage.removeItem('cart'); CART = []; }
+    // CORREÇÃO: o carrinho não é mais apagado aqui — isso fazia ele sumir
+    // antes mesmo do cliente ver a Entrega ou escolher pagamento, mesmo
+    // sem ter concluído nada. Agora só é apagado quando o cliente
+    // demonstra intenção real de pagar (função limparCarrinhoAposIntencao,
+    // chamada no Pix, no Cartão e no WhatsApp).
     localStorage.removeItem('cupomAplicadoCheckout');
     localStorage.removeItem('vendedorAplicadoCheckout');
 
@@ -292,10 +295,8 @@ async function confirmarEtapaDadosCliente() {
 
     if (!dados.pedidoId) { erroEl.textContent = dados.error || 'Não foi possível iniciar o checkout.'; return; }
 
-    // O carrinho (ou a compra avulsa) já virou pedido — limpa, pra não
-    // duplicar se a pessoa voltar pro catálogo depois.
-    if (MODO_COMPRAR_AGORA) localStorage.removeItem('buyNowItem');
-    else { localStorage.removeItem('cart'); CART = []; }
+    // CORREÇÃO: o carrinho não é mais apagado aqui (ver comentário na
+    // outra função que também iniciava checkout, mais acima no arquivo).
     localStorage.removeItem('cupomAplicadoCheckout');
     localStorage.removeItem('vendedorAplicadoCheckout');
 
@@ -667,6 +668,14 @@ function renderizarCheckout() {
   `;
 }
 
+// Fase 33 — só chamada nos momentos em que o cliente demonstra intenção
+// real de pagar (Pix gerado, cartão tentado, WhatsApp finalizado) — não
+// mais assim que o checkout começa.
+function limparCarrinhoAposIntencao() {
+  if (MODO_COMPRAR_AGORA) localStorage.removeItem('buyNowItem');
+  else { localStorage.removeItem('cart'); CART = []; }
+}
+
 function finalizarPorWhatsApp() {
   // CORREÇÃO ARQUITETURAL: prioriza o dado que vem do próprio pedido
   // (confiável, sempre vai existir enquanto o pedido existir) — o
@@ -724,6 +733,8 @@ function finalizarPorWhatsApp() {
   ].join('\n');
 
   const mensagem = encodeURIComponent(partes);
+  fetch(`${API_BASE}/loja/checkout/${PEDIDO_ATUAL.id}/confirmar-intencao`, { method: 'POST' }).catch(() => {});
+  limparCarrinhoAposIntencao();
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${mensagem}`, '_blank');
 }
 
@@ -766,6 +777,8 @@ async function iniciarPagamentoPix() {
       painel.innerHTML = `<div class="empty-msg">${escapeHtml(dados.error || 'Não foi possível gerar o Pix.')}</div>`;
       return;
     }
+
+    limparCarrinhoAposIntencao();
 
     painel.innerHTML = `
       <div class="card-panel" style="text-align:center;">
@@ -876,6 +889,7 @@ async function iniciarPagamentoCartao() {
             })
           });
           const dados = await resposta.json();
+          limparCarrinhoAposIntencao();
 
           if (!resposta.ok || dados.status === 'rejected') {
             alert(CHECKOUT_CONFIG.mensagens.checkout_corpo_pagamento_recusado || 'Pagamento recusado. Tente outro cartão.');
