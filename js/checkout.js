@@ -680,10 +680,6 @@ function finalizarPorWhatsApp() {
   const totalItens = PEDIDO_ATUAL.itens.reduce((soma, i) => soma + i.quantidade, 0);
   const subtotalItens = PEDIDO_ATUAL.itens.reduce((soma, i) => soma + (i.quantidade * i.precoUnitario), 0);
 
-  const linhasItens = PEDIDO_ATUAL.itens
-    .map((i) => `*${i.quantidade}x ${i.nomeProduto}* - ${formatCurrency(i.precoUnitario)}/un`)
-    .join('\n\n');
-
   let enderecoTexto;
   if (PEDIDO_ATUAL.tipoRecebimento === 'retirada') {
     enderecoTexto = 'Retirada na loja';
@@ -703,30 +699,26 @@ function finalizarPorWhatsApp() {
 
   const partes = [
     `*PEDIDO #${PEDIDO_ATUAL.id}*`,
-    '',
-    '',
     divisor,
     '👉 *DETALHES DO PEDIDO*',
-    linhasItens,
+    ...PEDIDO_ATUAL.itens.map((i) => `${i.quantidade}x ${i.nomeProduto} - ${formatCurrency(i.precoUnitario)}/un`),
     '',
     divisor,
     '👉 *DADOS DO CLIENTE*',
-    `Nome: *${nome || 'Não informado'}*`,
-    `Telefone: *${telefoneCliente || 'Não informado'}*`,
-    `Endereço: *${enderecoTexto}*`,
+    `*Nome:* ${nome || 'Não informado'}`,
+    `*Telefone:* ${telefoneCliente || 'Não informado'}`,
+    `*Endereço:* ${enderecoTexto}`,
     '',
     divisor,
-    '👉 *DETALHES DA ENTREGA*',
-    `Forma: *${formaEntrega}*`,
-    `Opção: *${opcaoEntrega}*`,
+    '👉 *ENTREGA*',
+    `*Forma:* ${formaEntrega}${opcaoEntrega && opcaoEntrega !== 'A combinar' ? ' — ' + opcaoEntrega : ''}`,
     '',
     divisor,
-    '👉 *VALORES E PAGAMENTO*',
-    `${totalItens} ${totalItens === 1 ? 'item' : 'itens'}: *${formatCurrency(subtotalItens)}*`,
-    `Entrega: *${PEDIDO_ATUAL.valorFrete > 0 ? formatCurrency(PEDIDO_ATUAL.valorFrete) : 'Grátis'}*`,
-    `Forma de pagamento: *A combinar*`,
-    `Total: *${formatCurrency(PEDIDO_ATUAL.total)}*`,
-    '',
+    '👉 *VALORES*',
+    `*${totalItens} ${totalItens === 1 ? 'item' : 'itens'}:* ${formatCurrency(subtotalItens)}`,
+    `*Entrega:* ${PEDIDO_ATUAL.valorFrete > 0 ? formatCurrency(PEDIDO_ATUAL.valorFrete) : 'Grátis'}`,
+    `*Total:* ${formatCurrency(PEDIDO_ATUAL.total)}`,
+    `*Pagamento:* combinamos por aqui 👇`,
     divisor,
     `_Gerado pelo Catálogo às ${agora}_`
   ].join('\n');
