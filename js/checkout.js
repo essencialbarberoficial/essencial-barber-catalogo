@@ -721,13 +721,16 @@ function finalizarPorWhatsApp() {
     divisor,
     '👉 *ENTREGA*',
     `*Forma:* ${formaEntrega}${opcaoEntrega && opcaoEntrega !== 'A combinar' ? ' — ' + opcaoEntrega : ''}`,
+    ...(PEDIDO_ATUAL.observacoesCliente ? ['', `*Observação:* ${PEDIDO_ATUAL.observacoesCliente}`] : []),
     '',
     divisor,
     '👉 *VALORES*',
     `*${totalItens} ${totalItens === 1 ? 'item' : 'itens'}:* ${formatCurrency(subtotalItens)}`,
+    ...(PEDIDO_ATUAL.valorDesconto > 0 ? [`*Desconto${PEDIDO_ATUAL.cupomCodigo ? ' (' + PEDIDO_ATUAL.cupomCodigo + ')' : ''}:* − ${formatCurrency(PEDIDO_ATUAL.valorDesconto)}`] : []),
     `*Entrega:* ${PEDIDO_ATUAL.valorFrete > 0 ? formatCurrency(PEDIDO_ATUAL.valorFrete) : 'Grátis'}`,
     `*Total:* ${formatCurrency(PEDIDO_ATUAL.total)}`,
     `*Pagamento:* combinamos por aqui 👇`,
+    ...(PEDIDO_ATUAL.vendedorNome ? ['', `*Atendido por:* ${PEDIDO_ATUAL.vendedorNome}`] : []),
     divisor,
     `_Gerado pelo Catálogo às ${agora}_`
   ].join('\n');
